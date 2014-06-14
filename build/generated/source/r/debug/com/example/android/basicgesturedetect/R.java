@@ -26,6 +26,7 @@ public final class R {
     public static final class id {
         public static final int dial_view=0x7f080002;
         public static final int log_fragment=0x7f080003;
+        public static final int sample_action=0x7f080004;
         public static final int sample_main_layout=0x7f080000;
         public static final int sample_output=0x7f080001;
     }

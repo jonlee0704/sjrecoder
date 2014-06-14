@@ -48,6 +48,10 @@ public abstract class DialView extends View {
                                 onRotate(offset);
                             }
                         }
+                    case MotionEvent.ACTION_SCROLL:
+                        /**
+                         *
+                         */
                         break;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:

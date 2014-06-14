@@ -24,7 +24,7 @@
     <TextView android:id="@+id/sample_output"
             style="@style/Widget.SampleMessage"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="263dp"
         android:text="@string/intro_message"
         android:padding="16dp" />
 
@@ -34,11 +34,4 @@
         android:layout_height="match_parent"
         android:text="@string/intro_message"
         android:padding="16dp" />
-
-    <fragment
-            android:name="com.example.android.common.logger.LogFragment"
-            android:id="@+id/log_fragment"
-            android:layout_weight="1"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
 </LinearLayout>
