@@ -34,21 +34,6 @@ public class BasicGestureDetectFragment extends Fragment{
 
     public MainActivity activity;
 
-//
-
-    private final double stepSizeAngle = Math.PI / 10f; //Angle diff to increase/decrease dial by 1$
-    private final double dialStartValue = 50.0;
-
-    //Center of your dial
-    private float dialCenterX = 500;
-    private float dialCenterY = 500;
-
-    private float fingerStartDiffX;
-    private float fingerStartDiffY;
-
-    private double currentDialValueExact = dialStartValue;
-
-    //
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -84,11 +69,6 @@ public class BasicGestureDetectFragment extends Fragment{
             }
         });
         // END_INCLUDE(init_detector)
-    }
-
-    private void setDialValue(int value) {
-        //assign value
-        Log.i("", "Dial value: " + value);
     }
 
     @Override

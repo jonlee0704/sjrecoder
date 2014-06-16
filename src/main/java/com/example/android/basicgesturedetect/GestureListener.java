@@ -18,6 +18,8 @@ package com.example.android.basicgesturedetect;
 
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.View;
+
 import com.example.android.common.logger.Log;
 
 public class GestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -29,38 +31,121 @@ public class GestureListener extends GestureDetector.SimpleOnGestureListener {
     private static final int SWIPE_THRESHOLD_VELOCITY = 200;
     public int touchCnt = 0;
 
+    private float centerX;
+    private float centerY;
+    private float minCircle;
+    private float maxCircle;
+    private float stepAngle;
+    private float startAngle;
+    private boolean isDragging;
+
     public GestureListener(MainActivity a){
         this.activity = a;
     }
 
     // BEGIN_INCLUDE(init_gestureListener)
-    @Override
-    public boolean onSingleTapUp(MotionEvent e) {
-        // Up motion completing a single tap occurred.
-        Log.i(TAG, "Single Tap Up: " + e.getPointerCount());
-        return true;
+//    @Override
+//    public boolean onSingleTapUp(MotionEvent e) {
+//        // Up motion completing a single tap occurred.
+//        Log.i(TAG, "Single Tap Up: " + e.getPointerCount());
+//        return true;
+//    }
+//
+//
+//    @Override
+//    public void onLongPress(MotionEvent e) {
+//        // Touch has been long enough to indicate a long press.
+//        // Does not indicate motion is complete yet (no up event necessarily)
+//        speak(TAG, "Read details", e);
+//    }
+
+//    @Override
+//    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+//        float startAngle = touchAngle(e1.getX(),e1.getY());
+//        isDragging = isInDiscArea(e1.getX(),e1.getY());
+//        float touchAngle = touchAngle(e2.getX(),e2.getY());
+//        float deltaAngle = (360 + touchAngle - startAngle + 180) % 360 - 180;
+//        Log.i(TAG, "touchAngle/deltaAngle:" + touchAngle+"/"+deltaAngle);
+//
+////        if (Math.abs(deltaAngle) > stepAngle) {
+////            int offset = (int) deltaAngle / (int) stepAngle;
+////            startAngle = touchAngle;
+////            //onRotate(offset);
+////            Log.i(TAG, "ACTION_MODE Offset:" + offset);
+////        }
+//
+//        return true;
+//    }
+
+    /**
+     * Define the step angle in degrees for which the
+     * dial will call {@link #onRotate(int)} event
+     * @param angle : angle between each position
+     */
+    public void setStepAngle(float angle) {
+        stepAngle = Math.abs(angle % 360);
+    }
+
+    /**
+     * Define the draggable disc area with relative circle radius
+     * based on min(width, height) dimension (0 = center, 1 = border)
+     * @param radius1 : internal or external circle radius
+     * @param radius2 : internal or external circle radius
+     */
+    public void setDiscArea(float radius1, float radius2) {
+        radius1 = Math.max(0, Math.min(1, radius1));
+        radius2 = Math.max(0, Math.min(1, radius2));
+        minCircle = Math.min(radius1, radius2);
+        maxCircle = Math.max(radius1, radius2);
+    }
+
+    /**
+     * Check if touch event is located in disc area
+     * @param touchX : X position of the finger in this view
+     * @param touchY : Y position of the finger in this view
+     */
+    private boolean isInDiscArea(float touchX, float touchY) {
+        float dX2 = (float) Math.pow(centerX - touchX, 2);
+        float dY2 = (float) Math.pow(centerY - touchY, 2);
+        float distToCenter = (float) Math.sqrt(dX2 + dY2);
+        float baseDist = Math.min(centerX, centerY);
+        float minDistToCenter = minCircle * baseDist;
+        float maxDistToCenter = maxCircle * baseDist;
+        return distToCenter >= minDistToCenter && distToCenter <= maxDistToCenter;
+    }
+
+    /**
+     * Compute a touch angle in degrees from center
+     * North = 0, East = 90, West = -90, South = +/-180
+     * @param touchX : X position of the finger in this view
+     * @param touchY : Y position of the finger in this view
+     * @return angle
+     */
+    private float touchAngle(float touchX, float touchY) {
+        float dX = touchX - centerX;
+        float dY = centerY - touchY;
+        return (float) (270 - Math.toDegrees(Math.atan2(dY, dX))) % 360 - 180;
     }
 
 
-    @Override
-    public void onLongPress(MotionEvent e) {
-        // Touch has been long enough to indicate a long press.
-        // Does not indicate motion is complete yet (no up event necessarily)
-        speak(TAG, "Read details", e);
-    }
-
+    /**
+     * TODO: Need to design 4 direction vs 8 direction command
+     * @param e1
+     * @param e2
+     * @param distanceX
+     * @param distanceY
+     * @return
+     */
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
 
         this.touchCnt = e2.getPointerCount();
-
+//        float touchX1 = e1.getX();
+//        float touchY1 = e1.getY();
 
         float d = this.getDegreeFromCartesian(e1.getX(),e1.getY(),e2.getX(),e2.getY());
-//        Log.i(TAG,"distanceX:"+distanceX);
-//        Log.i(TAG,"distanceY:"+distanceY);
 
-
-        if ((d > 225 && d < 315) && Math.abs(distanceX) > SWIPE_MIN_DISTANCE) {
+         if ((d > 240 && d < 300) && Math.abs(distanceX) > SWIPE_MIN_DISTANCE) {
             //From Right to Left
             if(touchCnt == 2)
                 speak(TAG,"Rewind 2x",e1,e2);
@@ -70,7 +155,7 @@ public class GestureListener extends GestureDetector.SimpleOnGestureListener {
                 speak(TAG,"Previous song",e1,e2);
             Log.i(TAG, "check#1");
             return true;
-        } else if ((d > 45 && d < 135) && Math.abs(distanceX) > SWIPE_MIN_DISTANCE) {
+        } else if ((d > 60 && d < 120) && Math.abs(distanceX) > SWIPE_MIN_DISTANCE) {
             //From Left to Right
             if(touchCnt == 2)
                 speak(TAG,"Fast forward 2x",e1,e2);
@@ -79,25 +164,28 @@ public class GestureListener extends GestureDetector.SimpleOnGestureListener {
             else if(touchCnt ==1 )
                 speak(TAG,"Next song",e1,e2);
             return true;
-        }
-
-        if ((d > 315 || d < 45)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
+        } else if ((d > 330 || d < 30)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
             //From Bottom to Top
             if(touchCnt == 3)
                 speak(TAG,"Start recording",e1,e2);
             else if ((touchCnt == 1))
                 speak(TAG,"Previous folder",e1,e2);
             return true;
-        } else if ((d > 135 && d < 225)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
+        } else if ((d > 150 && d < 210)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
             //From Top to Bottom
             if(touchCnt == 3)
                 speak(TAG,"Stop recording",e1,e2);
             else if ((touchCnt == 1))
                 speak(TAG,"Next folder",e1,e2);
             return true;
-        }
+        } else if ((d < 60 && d > 30)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
+             speak(TAG,"Next artist",e1,e2);
+             return true;
+         } else if ((d > 210 && d < 240)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
+             speak(TAG,"Previous artist",e1,e2);
+             return true;
+         }
 
-        Log.i(TAG, "check#2");
         return false;
 
     }

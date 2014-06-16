@@ -11,6 +11,8 @@ import android.graphics.Shader;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.example.android.common.logger.Log;
+
 /**
  * Created by jongyeong on 6/14/14.
  */
@@ -20,7 +22,10 @@ public abstract class DialView extends View {
     private float centerY;
     private float minCircle;
     private float maxCircle;
-    private float stepAngle;
+    private float stepAngle = 1;
+
+    public static final String TAG = "DialView.OnTouchListener";
+
 
     public DialView(Context context) {
 
@@ -29,31 +34,52 @@ public abstract class DialView extends View {
         setOnTouchListener(new OnTouchListener() {
             private float startAngle;
             private boolean isDragging;
+            private int touchCnt;
+
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                float touchX = event.getX();
-                float touchY = event.getY();
+                float touchX1 = event.getX();
+                float touchY1 = event.getY();
+                float touchX2 = 0;
+                float touchY2 = 0;
+
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
-                        startAngle = touchAngle(touchX, touchY);
-                        isDragging = isInDiscArea(touchX, touchY);
+                        touchX1 = event.getX();
+                        touchY1 = event.getY();
+                        startAngle = touchAngle(touchX1, touchY1);
+                        isDragging = isInDiscArea(touchX1, touchY1);
+                        Log.i(TAG,"ACTION_DOWN:" + event.getPointerCount());
+
                         break;
                     case MotionEvent.ACTION_MOVE:
                         if (isDragging) {
-                            float touchAngle = touchAngle(touchX, touchY);
+                            float touchAngle = touchAngle(touchX1, touchY1);
                             float deltaAngle = (360 + touchAngle - startAngle + 180) % 360 - 180;
                             if (Math.abs(deltaAngle) > stepAngle) {
                                 int offset = (int) deltaAngle / (int) stepAngle;
                                 startAngle = touchAngle;
                                 onRotate(offset);
+                                Log.i(TAG, "ACTION_MOVE: Dragging True");
+                            } else {
+                                Log.i(TAG, "ACTION_MOVE: Dragging False");
+
                             }
+                            return false;
                         }
                     case MotionEvent.ACTION_SCROLL:
                         /**
                          *
                          */
+                        Log.i(TAG,"ACTION_SCROLL:");
                         break;
                     case MotionEvent.ACTION_UP:
+                        touchX2 = event.getX();
+                        touchY2 = event.getY();
+                        Log.i(TAG,"Degree:" + getDegreeFromCartesian(touchX1,touchY1,touchX2,touchY2));
+                        Log.i(TAG,"ACTION_UP:" + event.getPointerCount());
+
                     case MotionEvent.ACTION_CANCEL:
                         isDragging = false;
                         break;
@@ -147,9 +173,28 @@ public abstract class DialView extends View {
     private float touchAngle(float touchX, float touchY) {
         float dX = touchX - centerX;
         float dY = centerY - touchY;
+        Log.i(TAG, "in touchAngle: " + ((270 - Math.toDegrees(Math.atan2(dY, dX))) % 360 - 180));
+
         return (float) (270 - Math.toDegrees(Math.atan2(dY, dX))) % 360 - 180;
     }
 
     protected abstract void onRotate(int offset);
 
+    /**
+     * Return degree
+     * @param nowX
+     * @param nowY
+     * @param centerX
+     * @param centerY
+     * @return
+     */
+    private float getDegreeFromCartesian(float nowX, float nowY, float centerX, float centerY)
+    {
+
+        float angle = (float) Math.atan2((centerX - nowX), (centerY-nowY));
+        float angleindegree = (float) (angle * 180/Math.PI);
+
+        return 180-angleindegree;
+
+    }
 }
