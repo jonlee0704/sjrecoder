@@ -32,7 +32,9 @@ import com.example.android.common.logger.LogFragment;
 
 public class BasicGestureDetectFragment extends Fragment{
 
+
     public MainActivity activity;
+
 
 
     @Override
@@ -52,8 +54,9 @@ public class BasicGestureDetectFragment extends Fragment{
 
         // First create the GestureListener that will include all our callbacks.
         // Then create the GestureDetector, which takes that listener as an argument.
-        GestureDetector.SimpleOnGestureListener gestureListener = new GestureListener(activity);
+        GestureDetector.OnGestureListener gestureListener = new GestureListener(activity);
         final GestureDetector gd = new GestureDetector(getActivity(), gestureListener);
+        gd.setIsLongpressEnabled(false);
 
         /* For the view where gestures will occur, create an onTouchListener that sends
          * all motion events to the gesture detector.  When the gesture detector

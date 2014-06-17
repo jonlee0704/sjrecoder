@@ -49,15 +49,10 @@ import android.view.Window;
 public class MainActivity extends SampleActivityBase{
 
     public static final String TAG = "MainActivity";
-
     public static final String FRAGTAG = "BasicGestureDetectFragment";
-
     public TextToSpeech ttobj = null;
-
     public String ttsString = "Hello Sangjoon, welcome to SJ recorder";
-
     public TextView textView = null;
-
     public View dialView = null;
 
     @Override

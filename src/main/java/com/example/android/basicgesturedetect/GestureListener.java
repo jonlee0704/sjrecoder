@@ -22,14 +22,16 @@ import android.view.View;
 
 import com.example.android.common.logger.Log;
 
-public class GestureListener extends GestureDetector.SimpleOnGestureListener {
+public class GestureListener implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
 
     public static final String TAG = "GestureListener";
     public MainActivity activity;
-    private static final int SWIPE_MIN_DISTANCE = 30;
-    private static final int SWIPE_MAX_OFF_PATH = 250;
-    private static final int SWIPE_THRESHOLD_VELOCITY = 200;
+    private static int SWIPE_MIN_DISTANCE = 100;
+    private static final int SWIPE_THRESHOLD = 100;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
     public int touchCnt = 0;
+
+
 
     private float centerX;
     private float centerY;
@@ -39,43 +41,51 @@ public class GestureListener extends GestureDetector.SimpleOnGestureListener {
     private float startAngle;
     private boolean isDragging;
 
+    /**
+     * n=8 directions control pad
+     * 360-(360/n)/2~(360/n)/2
+     * 1 = Bottom -> Top
+     * 2 = Upper right
+     * 3 = Left -> Right
+     * 4 = Bottom right
+     * 5 = Top -> Bottom
+     * 6 = Bottom left
+     * 7 = Right -> Left
+     * 8 = Upper left
+     */
+    private final int NO_DIRECTION = 0;
+    private final int BOTTOM_TOP = 1;
+    private final int UP_RIGHT = 2;
+    private final int LEFT_RIGHT = 3;
+    private final int BOTTOM_RIGHT = 4;
+    private final int TOP_BOTTOM = 5;
+    private final int BOTTOM_LEFT = 6;
+    private final int RIGHT_LEFT = 7;
+    private final int UP_LEFT = 8;
+
     public GestureListener(MainActivity a){
         this.activity = a;
     }
 
     // BEGIN_INCLUDE(init_gestureListener)
-//    @Override
-//    public boolean onSingleTapUp(MotionEvent e) {
-//        // Up motion completing a single tap occurred.
-//        Log.i(TAG, "Single Tap Up: " + e.getPointerCount());
-//        return true;
-//    }
-//
-//
-//    @Override
-//    public void onLongPress(MotionEvent e) {
-//        // Touch has been long enough to indicate a long press.
-//        // Does not indicate motion is complete yet (no up event necessarily)
-//        speak(TAG, "Read details", e);
-//    }
+    @Override
+    public boolean onSingleTapUp(MotionEvent e) {
+        // Up motion completing a single tap occurred.
+        Log.i(TAG, "Single Tap Up: " + e.getPointerCount());
+        return true;
+    }
 
-//    @Override
-//    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-//        float startAngle = touchAngle(e1.getX(),e1.getY());
-//        isDragging = isInDiscArea(e1.getX(),e1.getY());
-//        float touchAngle = touchAngle(e2.getX(),e2.getY());
-//        float deltaAngle = (360 + touchAngle - startAngle + 180) % 360 - 180;
-//        Log.i(TAG, "touchAngle/deltaAngle:" + touchAngle+"/"+deltaAngle);
-//
-////        if (Math.abs(deltaAngle) > stepAngle) {
-////            int offset = (int) deltaAngle / (int) stepAngle;
-////            startAngle = touchAngle;
-////            //onRotate(offset);
-////            Log.i(TAG, "ACTION_MODE Offset:" + offset);
-////        }
-//
-//        return true;
-//    }
+    @Override
+    public void onLongPress(MotionEvent e) {
+        // Touch has been long enough to indicate a long press.
+        // Does not indicate motion is complete yet (no up event necessarily)
+        speak(TAG, "Read details", e);
+    }
+
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        return false;
+    }
 
     /**
      * Define the step angle in degrees for which the
@@ -114,18 +124,6 @@ public class GestureListener extends GestureDetector.SimpleOnGestureListener {
         return distToCenter >= minDistToCenter && distToCenter <= maxDistToCenter;
     }
 
-    /**
-     * Compute a touch angle in degrees from center
-     * North = 0, East = 90, West = -90, South = +/-180
-     * @param touchX : X position of the finger in this view
-     * @param touchY : Y position of the finger in this view
-     * @return angle
-     */
-    private float touchAngle(float touchX, float touchY) {
-        float dX = touchX - centerX;
-        float dY = centerY - touchY;
-        return (float) (270 - Math.toDegrees(Math.atan2(dY, dX))) % 360 - 180;
-    }
 
 
     /**
@@ -140,74 +138,127 @@ public class GestureListener extends GestureDetector.SimpleOnGestureListener {
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
 
         this.touchCnt = e2.getPointerCount();
-//        float touchX1 = e1.getX();
-//        float touchY1 = e1.getY();
-
         float d = this.getDegreeFromCartesian(e1.getX(),e1.getY(),e2.getX(),e2.getY());
+        float ta = touchAngle(e1.getX(),e1.getY(),e2.getX(),e2.getY());
+        int dir = getDirection(d);
+        Log.i(TAG, "LOG:"+touchCnt+": degree:"+d+": touchAngle: " + ta + ":distanceXY:"+distanceX+":"+distanceY);
 
-         if ((d > 240 && d < 300) && Math.abs(distanceX) > SWIPE_MIN_DISTANCE) {
-            //From Right to Left
-            if(touchCnt == 2)
-                speak(TAG,"Rewind 2x",e1,e2);
-            else if(touchCnt == 3)
-                speak(TAG,"Rewind 3x",e1,e2);
-            else if(touchCnt ==1 )
-                speak(TAG,"Previous song",e1,e2);
-            Log.i(TAG, "check#1");
-            return true;
-        } else if ((d > 60 && d < 120) && Math.abs(distanceX) > SWIPE_MIN_DISTANCE) {
-            //From Left to Right
-            if(touchCnt == 2)
-                speak(TAG,"Fast forward 2x",e1,e2);
-            else if(touchCnt == 3)
-                speak(TAG,"Fast forward 3x",e1,e2);
-            else if(touchCnt ==1 )
-                speak(TAG,"Next song",e1,e2);
-            return true;
-        } else if ((d > 330 || d < 30)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
-            //From Bottom to Top
-            if(touchCnt == 3)
-                speak(TAG,"Start recording",e1,e2);
-            else if ((touchCnt == 1))
-                speak(TAG,"Previous folder",e1,e2);
-            return true;
-        } else if ((d > 150 && d < 210)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
-            //From Top to Bottom
-            if(touchCnt == 3)
-                speak(TAG,"Stop recording",e1,e2);
-            else if ((touchCnt == 1))
-                speak(TAG,"Next folder",e1,e2);
-            return true;
-        } else if ((d < 60 && d > 30)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
-             speak(TAG,"Next artist",e1,e2);
-             return true;
-         } else if ((d > 210 && d < 240)  && Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
-             speak(TAG,"Previous artist",e1,e2);
-             return true;
-         }
+        /**
+         * Fling cases
+         */
+        if (Math.abs(distanceX) > SWIPE_MIN_DISTANCE || Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
+            switch (getDirection(d)) {
+                case BOTTOM_TOP:
+                    if (touchCnt == 3)
+                        speak(TAG, "Start recording", e1, e2);
+                    else if ((touchCnt == 1))
+                        speak(TAG, "Previous folder", e1, e2);
+                    return true;
+                case UP_RIGHT:
+                    break;
+                case LEFT_RIGHT:
+                    if (touchCnt == 2)
+                        speak(TAG, "Fast forward 2x", e1, e2);
+                    else if (touchCnt == 3)
+                        speak(TAG, "Fast forward 3x", e1, e2);
+                    else if (touchCnt == 1)
+                        speak(TAG, "Next song", e1, e2);
+                    return true;
+                case BOTTOM_RIGHT:
+                    break;
+                case TOP_BOTTOM:
+                    //From Top to Bottom
+                    if (touchCnt == 3)
+                        speak(TAG, "Stop recording", e1, e2);
+                    else if ((touchCnt == 1))
+                        speak(TAG, "Next folder", e1, e2);
+                    return true;
+                case BOTTOM_LEFT:
+                    break;
+                case RIGHT_LEFT:
+                    if (touchCnt == 2)
+                        speak(TAG, "Rewind 2x", e1, e2);
+                    else if (touchCnt == 3)
+                        speak(TAG, "Rewind 3x", e1, e2);
+                    else if (touchCnt == 1)
+                        speak(TAG, "Previous song", e1, e2);
+                    return true;
+                case UP_LEFT:
+                    break;
+            }
+        } else{
+            switch (getDirection(d)) {
+                case BOTTOM_TOP:
+                    if (touchCnt == 3)
+                        speak(TAG, "Start recording", e1, e2);
+                    return true;
+                case UP_RIGHT:
+                case LEFT_RIGHT:
+
+                case BOTTOM_RIGHT:
+                case TOP_BOTTOM:
+                case BOTTOM_LEFT:
+                case RIGHT_LEFT:
+                case UP_LEFT:
+            }
+        }
 
         return false;
 
     }
 
 
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2,float velocityX, float velocityY) {
-        // Does nothing
-        return true;
+    /**
+     * n=8 directions control pad
+     * 360-(360/n)/2~(360/n)/2
+     * 1 = Down -> Up
+     * 2 = Upper right
+     * 3 = Left -> Right
+     * 4 = Down right
+     * 5 = Up -> Down
+     * 6 = Down left
+     * 7 = Right -> Left
+     * 8 = Upper left
+     * TODO: Consider better flexility modifiable by different direction number.
+     */
+    private int getDirection(float angle){
+        // n = 22.5 in case 8 direction
+        double n = 22.5;
+        if (angle > 360-n || angle < n){
+            return this.BOTTOM_TOP;
+        } else if (angle > n && angle < n*3){
+            return this.UP_RIGHT;
+        } else if (angle > n*3 && angle < n*5){
+            return this.LEFT_RIGHT;
+        } else if (angle > n*5 && angle < n*7){
+            return this.BOTTOM_RIGHT;
+        } else if (angle > n*7 && angle < n*9){
+            return this.TOP_BOTTOM;
+        } else if (angle > n*9 && angle < n*11){
+            return this.BOTTOM_LEFT;
+        } else if (angle > n*11 && angle < n*13){
+            return this.RIGHT_LEFT;
+        } else if (angle > n*13 && angle < n*15){
+            return this.UP_LEFT;
+        } else{
+            return this.NO_DIRECTION;
+        }
     }
+
 
     @Override
     public void onShowPress(MotionEvent e) {
         // User performed a down event, and hasn't moved yet.
-        Log.i(TAG, "Show Press: " + e.getPointerCount());
+        // Set the threshold not to get gesture event.
+        this.SWIPE_MIN_DISTANCE = 1000;
+        speak(TAG,"Start to move",e);
     }
 
     @Override
     public boolean onDown(MotionEvent e) {
         // "Down" event - User touched the screen.
+        this.SWIPE_MIN_DISTANCE = 50;
         Log.i(TAG,"Down: " + e.getPointerCount());
-
         return true;
     }
 
@@ -225,7 +276,7 @@ public class GestureListener extends GestureDetector.SimpleOnGestureListener {
         // occurring.  This occurs for down, up, and move.
         Log.i(TAG, "Event within double tap");
 //        speak(TAG, "Event within double tap");
-        return false;
+        return true;
     }
 
     @Override
@@ -272,4 +323,19 @@ public class GestureListener extends GestureDetector.SimpleOnGestureListener {
         return 180-angleindegree;
 
     }
+
+    /**
+     * Compute a touch angle in degrees from center
+     * North = 0, East = 90, West = -90, South = +/-180
+     * @param touchX : X position of the finger in this view
+     * @param touchY : Y position of the finger in this view
+     * @return angle
+     */
+    private float touchAngle(float touchX, float touchY, float centerX, float centerY) {
+        float dX = touchX - centerX;
+        float dY = centerY - touchY;
+        return (float) (270 - Math.toDegrees(Math.atan2(dY, dX))) % 360 - 180;
+    }
+
+
 }

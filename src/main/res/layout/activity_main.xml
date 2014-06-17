@@ -24,7 +24,7 @@
     <TextView android:id="@+id/sample_output"
             style="@style/Widget.SampleMessage"
         android:layout_width="match_parent"
-        android:layout_height="263dp"
+        android:layout_height="570dp"
         android:text="@string/intro_message"
         android:padding="16dp" />
 
