@@ -136,7 +136,6 @@ public class MainActivity extends SampleActivityBase{
         this.ttsString = w;
         ttobj.speak(ttsString, TextToSpeech.QUEUE_FLUSH, null);
 
-
         //TextView textView = (TextView) findViewById(R.id.sample_output);
         textView.setText("Command: " + w);
         // TESTING...
