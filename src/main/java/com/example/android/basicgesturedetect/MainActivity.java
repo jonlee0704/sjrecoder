@@ -54,6 +54,7 @@ public class MainActivity extends SampleActivityBase{
     public String ttsString = "Hello Sangjoon, welcome to SJ recorder";
     public TextView textView = null;
     public View dialView = null;
+    public Recorder recorder = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +87,8 @@ public class MainActivity extends SampleActivityBase{
         }
         );
 
+        // Create Recorder
+        recorder = new Recorder();
     }
 
 
@@ -126,7 +129,7 @@ public class MainActivity extends SampleActivityBase{
      * Let TTS speaks
      * @param w
      */
-    public void speak(String w){
+    public void speak(String w) {
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
         v.vibrate(100);
@@ -134,7 +137,22 @@ public class MainActivity extends SampleActivityBase{
         ttobj.speak(ttsString, TextToSpeech.QUEUE_FLUSH, null);
 
         //TextView textView = (TextView) findViewById(R.id.sample_output);
-        textView.setText("Command: "+w);
-        //
+        textView.setText("Command: " + w);
+        // TESTING...
+        if (w.startsWith("Start recording")) {
+            if (!recorder.isRecording())
+                recorder.startRecording();
+        } else if (w.startsWith("Start and Stop")) {
+            if (recorder.isRecording())
+                recorder.stopRecording();
+            else if (recorder.isPlaying())
+                recorder.stopPlaying();
+        } else if (w.startsWith("Start and Stop")) {
+            recorder.startPlaying();
+        }
     }
+
+    /**
+     * Command center
+     */
 }
