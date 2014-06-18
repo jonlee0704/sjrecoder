@@ -88,7 +88,7 @@ public class MainActivity extends SampleActivityBase{
         );
 
         // Create Recorder
-        recorder = new Recorder();
+        recorder = new Recorder(this);
     }
 
 
@@ -133,6 +133,7 @@ public class MainActivity extends SampleActivityBase{
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
         v.vibrate(100);
+
         this.ttsString = w;
         ttobj.speak(ttsString, TextToSpeech.QUEUE_FLUSH, null);
 
@@ -153,6 +154,27 @@ public class MainActivity extends SampleActivityBase{
     }
 
     /**
-     * Command center
+     * Command
+     * var c = Command.{CONSTANT}
      */
+    public boolean cmd(int c){
+        switch( c ){
+            case Command.START_RECORD:
+                if (!recorder.isRecording())
+                    recorder.startRecording();
+            case Command.STOP:
+                if (recorder.isRecording())
+                    recorder.stopRecording();
+                else if (recorder.isPlaying())
+                    recorder.stopPlaying();
+            case Command.NEXT_SONG:
+            case Command.PREVIOUS_SONG:
+            case Command.NEXT_FOLDER:
+            case Command.PREVIOUS_FOLDER:
+            case Command.FAST_FORWARD_2X:
+            case Command.FAST_BACKWARD_2X:
+            case Command.SPEAK_FILE_INFO:
+        }
+        return false;
+    }
 }

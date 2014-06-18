@@ -71,7 +71,7 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
         // Up motion completing a single tap occurred.
-        Log.i(TAG, "Single Tap Up: " + e.getPointerCount());
+        //Log.i(TAG, "Single Tap Up: " + e.getPointerCount());
         return true;
     }
 
@@ -79,7 +79,7 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
     public void onLongPress(MotionEvent e) {
         // Touch has been long enough to indicate a long press.
         // Does not indicate motion is complete yet (no up event necessarily)
-        speak(TAG, "Read details", e);
+        activity.cmd(Command.SPEAK_FILE_INFO);
     }
 
     @Override
@@ -89,7 +89,6 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
 
     /**
      * Define the step angle in degrees for which the
-     * dial will call {@link #onRotate(int)} event
      * @param angle : angle between each position
      */
     public void setStepAngle(float angle) {
@@ -141,7 +140,7 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         float d = this.getDegreeFromCartesian(e1.getX(),e1.getY(),e2.getX(),e2.getY());
         float ta = touchAngle(e1.getX(),e1.getY(),e2.getX(),e2.getY());
         int dir = getDirection(d);
-        Log.i(TAG, "LOG:"+touchCnt+": degree:"+d+": touchAngle: " + ta + ":distanceXY:"+distanceX+":"+distanceY);
+        //Log.i(TAG, "LOG:"+touchCnt+": degree:"+d+": touchAngle: " + ta + ":distanceXY:"+distanceX+":"+distanceY);
 
         /**
          * Fling cases
@@ -150,38 +149,38 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
             switch (getDirection(d)) {
                 case BOTTOM_TOP:
                     if (touchCnt == 3)
-                        speak(TAG, "Start recording", e1, e2);
+                        activity.cmd(Command.START_RECORD);
                     else if ((touchCnt == 1))
-                        speak(TAG, "Previous folder", e1, e2);
+                        activity.cmd(Command.PREVIOUS_FOLDER);
                     return true;
                 case UP_RIGHT:
                     break;
                 case LEFT_RIGHT:
                     if (touchCnt == 2)
-                        speak(TAG, "Fast forward 2x", e1, e2);
+                        activity.cmd(Command.FAST_FORWARD_2X);
                     else if (touchCnt == 3)
-                        speak(TAG, "Fast forward 3x", e1, e2);
+                        activity.cmd(Command.FAST_FORWARD_3X);
                     else if (touchCnt == 1)
-                        speak(TAG, "Next song", e1, e2);
+                        activity.cmd(Command.NEXT_SONG);
                     return true;
                 case BOTTOM_RIGHT:
                     break;
                 case TOP_BOTTOM:
                     //From Top to Bottom
                     if (touchCnt == 3)
-                        speak(TAG, "Stop recording", e1, e2);
+                        activity.cmd(Command.STOP_RECORD);
                     else if ((touchCnt == 1))
-                        speak(TAG, "Next folder", e1, e2);
+                        activity.cmd(Command.NEXT_FOLDER);
                     return true;
                 case BOTTOM_LEFT:
                     break;
                 case RIGHT_LEFT:
                     if (touchCnt == 2)
-                        speak(TAG, "Rewind 2x", e1, e2);
+                        activity.cmd(Command.FAST_BACKWARD_2X);
                     else if (touchCnt == 3)
-                        speak(TAG, "Rewind 3x", e1, e2);
+                        activity.cmd(Command.FAST_BACKWARD_3X);
                     else if (touchCnt == 1)
-                        speak(TAG, "Previous song", e1, e2);
+                        activity.cmd(Command.PREVIOUS_SONG);
                     return true;
                 case UP_LEFT:
                     break;
@@ -190,7 +189,7 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
             switch (getDirection(d)) {
                 case BOTTOM_TOP:
                     if (touchCnt == 3)
-                        speak(TAG, "Start recording", e1, e2);
+                        activity.cmd(Command.START_RECORD);
                     return true;
                 case UP_RIGHT:
                 case LEFT_RIGHT:
@@ -251,7 +250,7 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         // User performed a down event, and hasn't moved yet.
         // Set the threshold not to get gesture event.
         this.SWIPE_MIN_DISTANCE = 1000;
-        speak(TAG,"Start to move",e);
+        //activity.cmd(Command.);
     }
 
     @Override
@@ -275,7 +274,7 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         // gesture, there's a separate callback for an individual event within the doubletap
         // occurring.  This occurs for down, up, and move.
         Log.i(TAG, "Event within double tap");
-//        speak(TAG, "Event within double tap");
+//        cmd(T"Event within double tap");
         return true;
     }
 
@@ -283,28 +282,32 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
     public boolean onSingleTapConfirmed(MotionEvent e) {
         // A confirmed single-tap event has occurred.  Only called when the detector has
         // determined that the first tap stands alone, and is not part of a double tap.
-        speak(TAG, "Start and Stop", e);
+        activity.cmd(Command.STOP);
         return true;
     }
 
 
     // END_INCLUDE(init_gestureListener)
 
-    public void speak(String t, String w){
-        activity.speak(w);
-    }
-
-    public void speak(String t, String w, MotionEvent e){
-        activity.speak(w);
-        Log.i(TAG, "[" + w + "]" + e.getPointerCount());
-
-    }
-
-    public void speak(String t, String w, MotionEvent e1, MotionEvent e2){
-        activity.speak(w);
-        Log.i(TAG, "[" + w + "]" + e1.getPointerCount() + ":" + e2.getPointerCount());
-
-    }
+//    public void cmd(int c){
+//        activity.speak(w);
+//    }
+//
+//    public void cmd(String t, String w){
+//        activity.speak(w);
+//    }
+//
+//    public void cmd(String t, String w, MotionEvent e){
+//        activity.speak(w);
+//        Log.i(TAG, "[" + w + "]" + e.getPointerCount());
+//
+//    }
+//
+//    public void cmd(String t, String w, MotionEvent e1, MotionEvent e2){
+//        activity.speak(w);
+//        Log.i(TAG, "[" + w + "]" + e1.getPointerCount() + ":" + e2.getPointerCount());
+//
+//    }
 
     /**
      * Return degree
