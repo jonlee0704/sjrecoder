@@ -26,12 +26,12 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
 
     public static final String TAG = "GestureListener";
     public MainActivity activity;
-    private static int SWIPE_MIN_DISTANCE = 100;
+    private static int SWIPE_MIN_DISTANCE = 50;
     private static final int SWIPE_THRESHOLD = 100;
     private static final int SWIPE_VELOCITY_THRESHOLD = 100;
     public int touchCnt = 0;
 
-
+    private boolean isFired = false;
 
     private float centerX;
     private float centerY;
@@ -71,15 +71,19 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
         // Up motion completing a single tap occurred.
-        //Log.i(TAG, "Single Tap Up: " + e.getPointerCount());
+        //Log.i(TAG, "Single Tap Up: ");
         return true;
     }
 
+    /**
+     * Long press is disabled to handle onTouch event
+     * @param e
+     */
     @Override
     public void onLongPress(MotionEvent e) {
         // Touch has been long enough to indicate a long press.
         // Does not indicate motion is complete yet (no up event necessarily)
-        activity.cmd(Command.SPEAK_FILE_INFO);
+        // activity.cmd(Command.SPEAK_FILE_INFO);
     }
 
     @Override
@@ -136,11 +140,19 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
 
+        if(isFired)
+            return true;
+
         this.touchCnt = e2.getPointerCount();
         float d = this.getDegreeFromCartesian(e1.getX(),e1.getY(),e2.getX(),e2.getY());
-        float ta = touchAngle(e1.getX(),e1.getY(),e2.getX(),e2.getY());
+        //float ta = touchAngle(e1.getX(),e1.getY(),e2.getX(),e2.getY());
         int dir = getDirection(d);
-        //Log.i(TAG, "LOG:"+touchCnt+": degree:"+d+": touchAngle: " + ta + ":distanceXY:"+distanceX+":"+distanceY);
+        Log.i(TAG, "LOG:"+touchCnt+": degree:" + dir);
+
+        if (touchCnt > 2){
+            cmd(Command.START_RECORD);
+            return true;
+        }
 
         /**
          * Fling cases
@@ -148,64 +160,65 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         if (Math.abs(distanceX) > SWIPE_MIN_DISTANCE || Math.abs(distanceY) > SWIPE_MIN_DISTANCE) {
             switch (getDirection(d)) {
                 case BOTTOM_TOP:
-                    if (touchCnt == 3)
-                        activity.cmd(Command.START_RECORD);
-                    else if ((touchCnt == 1))
-                        activity.cmd(Command.PREVIOUS_FOLDER);
-                    return true;
+                    cmd(Command.PREVIOUS_FOLDER);
+                    break;
                 case UP_RIGHT:
+                    cmd(Command.NOTHING);
                     break;
                 case LEFT_RIGHT:
                     if (touchCnt == 2)
-                        activity.cmd(Command.FAST_FORWARD_2X);
-                    else if (touchCnt == 3)
-                        activity.cmd(Command.FAST_FORWARD_3X);
+                        cmd(Command.FAST_FORWARD_2X);
                     else if (touchCnt == 1)
-                        activity.cmd(Command.NEXT_SONG);
-                    return true;
+                        cmd(Command.NEXT_SONG);
+                    break;
                 case BOTTOM_RIGHT:
+                    cmd(Command.NOTHING);
                     break;
                 case TOP_BOTTOM:
                     //From Top to Bottom
-                    if (touchCnt == 3)
-                        activity.cmd(Command.STOP_RECORD);
+                    if (touchCnt == 2)
+                        cmd(Command.STOP_RECORD);
                     else if ((touchCnt == 1))
-                        activity.cmd(Command.NEXT_FOLDER);
-                    return true;
+                        cmd(Command.NEXT_FOLDER);
+                    break;
                 case BOTTOM_LEFT:
+                    cmd(Command.NOTHING);
                     break;
                 case RIGHT_LEFT:
                     if (touchCnt == 2)
-                        activity.cmd(Command.FAST_BACKWARD_2X);
-                    else if (touchCnt == 3)
-                        activity.cmd(Command.FAST_BACKWARD_3X);
+                        cmd(Command.FAST_BACKWARD_2X);
                     else if (touchCnt == 1)
-                        activity.cmd(Command.PREVIOUS_SONG);
-                    return true;
-                case UP_LEFT:
+                        cmd(Command.PREVIOUS_SONG);
                     break;
+                case UP_LEFT:
+                    cmd(Command.NOTHING);
+                    break;
+
             }
         } else{
             switch (getDirection(d)) {
                 case BOTTOM_TOP:
-                    if (touchCnt == 3)
-                        activity.cmd(Command.START_RECORD);
-                    return true;
                 case UP_RIGHT:
                 case LEFT_RIGHT:
-
                 case BOTTOM_RIGHT:
                 case TOP_BOTTOM:
                 case BOTTOM_LEFT:
                 case RIGHT_LEFT:
                 case UP_LEFT:
             }
+            //cmd(Command.NOTHING);
+            Log.i(TAG,"Too low speed to move enough distance:" + distanceX + ":" +distanceY);
         }
 
-        return false;
 
+
+        return true;
     }
 
+    private void cmd(int c){
+        this.isFired = true;
+        activity.cmd(c);
+    }
 
     /**
      * n=8 directions control pad
@@ -218,30 +231,45 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
      * 6 = Down left
      * 7 = Right -> Left
      * 8 = Upper left
-     * TODO: Consider better flexility modifiable by different direction number.
+     * TODO: Consider better flexibility by different direction number.
+     * TODO: Now, it implements only 4 direction controls
      */
     private int getDirection(float angle){
-        // n = 22.5 in case 8 direction
-        double n = 22.5;
+        // n = 45 in case 4 direction
+        double n = 45;
         if (angle > 360-n || angle < n){
             return this.BOTTOM_TOP;
         } else if (angle > n && angle < n*3){
-            return this.UP_RIGHT;
-        } else if (angle > n*3 && angle < n*5){
             return this.LEFT_RIGHT;
-        } else if (angle > n*5 && angle < n*7){
-            return this.BOTTOM_RIGHT;
-        } else if (angle > n*7 && angle < n*9){
+        } else if (angle > n*3 && angle < n*5){
             return this.TOP_BOTTOM;
-        } else if (angle > n*9 && angle < n*11){
-            return this.BOTTOM_LEFT;
-        } else if (angle > n*11 && angle < n*13){
+        } else if (angle > n*5 && angle < n*7){
             return this.RIGHT_LEFT;
-        } else if (angle > n*13 && angle < n*15){
-            return this.UP_LEFT;
         } else{
             return this.NO_DIRECTION;
         }
+
+        // n = 22.5 in case 8 direction
+//        double n = 22.5;
+//        if (angle > 360-n || angle < n){
+//            return this.BOTTOM_TOP;
+//        } else if (angle > n && angle < n*3){
+//            return this.UP_RIGHT;
+//        } else if (angle > n*3 && angle < n*5){
+//            return this.LEFT_RIGHT;
+//        } else if (angle > n*5 && angle < n*7){
+//            return this.BOTTOM_RIGHT;
+//        } else if (angle > n*7 && angle < n*9){
+//            return this.TOP_BOTTOM;
+//        } else if (angle > n*9 && angle < n*11){
+//            return this.BOTTOM_LEFT;
+//        } else if (angle > n*11 && angle < n*13){
+//            return this.RIGHT_LEFT;
+//        } else if (angle > n*13 && angle < n*15){
+//            return this.UP_LEFT;
+//        } else{
+//            return this.NO_DIRECTION;
+//        }
     }
 
 
@@ -250,21 +278,22 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         // User performed a down event, and hasn't moved yet.
         // Set the threshold not to get gesture event.
         this.SWIPE_MIN_DISTANCE = 1000;
-        //activity.cmd(Command.);
+        activity.cmd(Command.JOG_ANTI_CLOCK_WISE);
     }
 
     @Override
     public boolean onDown(MotionEvent e) {
         // "Down" event - User touched the screen.
         this.SWIPE_MIN_DISTANCE = 50;
-        Log.i(TAG,"Down: " + e.getPointerCount());
+        Log.i(TAG,"Down: ");
+        this.isFired = false;
         return true;
     }
 
     @Override
     public boolean onDoubleTap(MotionEvent e) {
         // User tapped the screen twice.
-        Log.i(TAG, "Double tap: " + e.getPointerCount());
+        //Log.i(TAG, "Double tap: " + e.getPointerCount());
         return false;
     }
 
@@ -273,41 +302,19 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         // Since double-tap is actually several events which are considered one aggregate
         // gesture, there's a separate callback for an individual event within the doubletap
         // occurring.  This occurs for down, up, and move.
-        Log.i(TAG, "Event within double tap");
+        //Log.i(TAG, "Event within double tap");
 //        cmd(T"Event within double tap");
-        return true;
+        return false;
     }
 
     @Override
     public boolean onSingleTapConfirmed(MotionEvent e) {
         // A confirmed single-tap event has occurred.  Only called when the detector has
         // determined that the first tap stands alone, and is not part of a double tap.
-        activity.cmd(Command.STOP);
+        //Log.i(TAG, "onSingleTapConfirmed");
+        activity.cmd(Command.ONETOUCH);
         return true;
     }
-
-
-    // END_INCLUDE(init_gestureListener)
-
-//    public void cmd(int c){
-//        activity.speak(w);
-//    }
-//
-//    public void cmd(String t, String w){
-//        activity.speak(w);
-//    }
-//
-//    public void cmd(String t, String w, MotionEvent e){
-//        activity.speak(w);
-//        Log.i(TAG, "[" + w + "]" + e.getPointerCount());
-//
-//    }
-//
-//    public void cmd(String t, String w, MotionEvent e1, MotionEvent e2){
-//        activity.speak(w);
-//        Log.i(TAG, "[" + w + "]" + e1.getPointerCount() + ":" + e2.getPointerCount());
-//
-//    }
 
     /**
      * Return degree
@@ -319,7 +326,6 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
      */
     private float getDegreeFromCartesian(float nowX, float nowY, float centerX, float centerY)
     {
-
         float angle = (float) Math.atan2((centerX - nowX), (centerY-nowY));
         float angleindegree = (float) (angle * 180/Math.PI);
 

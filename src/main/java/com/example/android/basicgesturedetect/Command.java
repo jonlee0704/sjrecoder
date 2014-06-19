@@ -17,15 +17,25 @@ public class Command {
     public final static int NEXT_FOLDER = 11;
     public final static int PREVIOUS_FOLDER = 12;
     public final static int SPEAK_FILE_INFO = 13;
-    public final static int STOP = 14;
+    public final static int ONETOUCH = 14;
     public final static int FAST_FORWARD_3X = 15;
     public final static int FAST_BACKWARD_3X = 16;
+    public final static int NEXT_DAY = 17;
+    public final static int PREVIOUS_DAY = 18;
+    public final static int PAUSE = 19;
+    public final static int NOTHING = 100;
+
 
     public Command(){}
 
-    public static String getString(int c){
-        switch(c) {
-            case START_RECORD:
-        }
-    }
+    /**
+     * TODO Is this good idea to implement String resource here? Or "res/String" might be better?
+     * @param c
+     * @return
+     */
+//    public static String getString(int c){
+//        switch(c) {
+//            case START_RECORD:
+//        }
+//    }
 }

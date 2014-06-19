@@ -51,7 +51,7 @@ public class MainActivity extends SampleActivityBase{
     public static final String TAG = "MainActivity";
     public static final String FRAGTAG = "BasicGestureDetectFragment";
     public TextToSpeech ttobj = null;
-    public String ttsString = "Hello Sangjoon, welcome to SJ recorder";
+    //public String ttsString = "Hello Sangjoon, welcome to SJ recorder";
     public TextView textView = null;
     public View dialView = null;
     public Recorder recorder = null;
@@ -71,6 +71,7 @@ public class MainActivity extends SampleActivityBase{
         if (getSupportFragmentManager().findFragmentByTag(FRAGTAG) == null ) {
             FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
             BasicGestureDetectFragment fragment = new BasicGestureDetectFragment();
+
             fragment.setActivity(this);
             transaction.add(fragment, FRAGTAG);
             transaction.commit();
@@ -80,7 +81,7 @@ public class MainActivity extends SampleActivityBase{
             @Override
             public void onInit(int status) {
                 if(status != TextToSpeech.ERROR){
-                    ttobj.setLanguage(Locale.UK);
+                    ttobj.setLanguage(Locale.US);
                 }
 
             }
@@ -120,37 +121,29 @@ public class MainActivity extends SampleActivityBase{
 //        Log.i(TAG, "Ready");
 
     }
-
-    public void setTtsString(String str){
-        this.ttsString = str;
-    }
+//
+//    public void setTtsString(String str){
+//        this.ttsString = str;
+//    }
 
     /**
      * Let TTS speaks
      * @param w
      */
     public void speak(String w) {
+        //TODO Chang QUEUE_ADD to QUEUE_FLUSH
+        ttobj.speak(w, TextToSpeech.QUEUE_ADD, null);
+        //textView.append("Command: " + w + "\n");
+    }
+
+    public void vibrate(){
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
-        v.vibrate(100);
+        v.vibrate(70);
+    }
 
-        this.ttsString = w;
-        ttobj.speak(ttsString, TextToSpeech.QUEUE_FLUSH, null);
-
-        //TextView textView = (TextView) findViewById(R.id.sample_output);
-        textView.setText("Command: " + w);
-        // TESTING...
-        if (w.startsWith("Start recording")) {
-            if (!recorder.isRecording())
-                recorder.startRecording();
-        } else if (w.startsWith("Start and Stop")) {
-            if (recorder.isRecording())
-                recorder.stopRecording();
-            else if (recorder.isPlaying())
-                recorder.stopPlaying();
-        } else if (w.startsWith("Start and Stop")) {
-            recorder.startPlaying();
-        }
+    public void displayText(String w){
+        textView.setText(w);
     }
 
     /**
@@ -158,23 +151,75 @@ public class MainActivity extends SampleActivityBase{
      * var c = Command.{CONSTANT}
      */
     public boolean cmd(int c){
-        switch( c ){
-            case Command.START_RECORD:
-                if (!recorder.isRecording())
+        String cmdStr = "Invalid command";
+        vibrate();
+
+        //Log.i(TAG,"cmd:"+c);
+
+        // If it's on recording, Speak "On air now and QUIT"
+        // TODO Would like to consider to STOP by any touch events to make it easier.
+        if(recorder.isRecording()) {
+            if (c == Command.ONETOUCH || c == Command.STOP_RECORD) {
+                recorder.stopRecording();
+                cmdStr = getResources().getString(R.string.STOP_RECORD);
+            }else {
+                cmdStr = getResources().getString(R.string.ALREADY_RECORD);
+            }
+        } else {
+            switch (c) {
+                case Command.START_RECORD:
                     recorder.startRecording();
-            case Command.STOP:
-                if (recorder.isRecording())
-                    recorder.stopRecording();
-                else if (recorder.isPlaying())
+                    cmdStr = getResources().getString(R.string.START_RECORD);
+                    break;
+                case Command.ONETOUCH:
+                    Log.i(TAG, "isPaused:"+recorder.isPaused()+":isPlaying:"+recorder.isPlaying());
+                    if (recorder.isPlaying() && !recorder.isPaused()) {
+                        recorder.pause();
+                        cmdStr = getResources().getString(R.string.PAUSE);
+                    } else if(!recorder.isPlaying() && recorder.isPaused()) {
+                            recorder.resume();
+                            cmdStr = getResources().getString(R.string.RESUME);
+                    } else if(!recorder.isPlaying() && !recorder.isPaused()) {
+                        recorder.startPlaying();
+                        cmdStr = getResources().getString(R.string.START_PLAYBACK);
+                    }
+                    this.displayText(cmdStr + ":" + recorder.getCurrentFileName());
+                    break;
+                case Command.NEXT_SONG:
+                    cmdStr = getResources().getString(R.string.NEXT_SONG);
                     recorder.stopPlaying();
-            case Command.NEXT_SONG:
-            case Command.PREVIOUS_SONG:
-            case Command.NEXT_FOLDER:
-            case Command.PREVIOUS_FOLDER:
-            case Command.FAST_FORWARD_2X:
-            case Command.FAST_BACKWARD_2X:
-            case Command.SPEAK_FILE_INFO:
+                    recorder.nextSong();
+                    recorder.startPlaying();
+                    this.displayText(cmdStr + ":" + recorder.getCurrentFileName());
+                    break;
+                case Command.PREVIOUS_SONG:
+                    cmdStr = getResources().getString(R.string.PREVIOUS_SONG);
+                    recorder.stopPlaying();
+                    recorder.previousSong();
+                    recorder.startPlaying();
+                    this.displayText(cmdStr + ":" + recorder.getCurrentFileName());
+                    break;
+                case Command.NEXT_FOLDER:
+                    cmdStr = getResources().getString(R.string.NEXT_FOLDER);
+                    break;
+                case Command.PREVIOUS_FOLDER:
+                    cmdStr = getResources().getString(R.string.PREVIOUS_FOLDER);
+                    break;
+                case Command.FAST_FORWARD_2X:
+                    cmdStr = getResources().getString(R.string.FAST_FORWARD_2X);
+                    break;
+                case Command.FAST_BACKWARD_2X:
+                    cmdStr = getResources().getString(R.string.FAST_BACKWARD_2X);
+                    break;
+                case Command.SPEAK_FILE_INFO:
+                    cmdStr = getResources().getString(R.string.SPEAK_FILE_INFO);
+                    break;
+                case Command.NOTHING:
+                    cmdStr = "SangJoon, SON!!!";
+                    break;
+            }
         }
-        return false;
+        //speak(cmdStr);
+        return true;
     }
 }

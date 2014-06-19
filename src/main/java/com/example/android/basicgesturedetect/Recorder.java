@@ -5,6 +5,7 @@ package com.example.android.basicgesturedetect;
  */
 import android.app.Activity;
 import android.os.Build;
+import android.os.Vibrator;
 import android.support.v4.content.ContextCompat;
 import android.widget.LinearLayout;
 import android.os.Bundle;
@@ -28,25 +29,57 @@ import java.util.Calendar;
 public class Recorder extends Activity
 {
     private static final String TAG = "AudioRecordTest";
-    private static String mFileName = null;
 
-    private RecordButton mRecordButton = null;
-    private MediaRecorder mRecorder = null;
-
-    private PlayButton   mPlayButton = null;
-    private MediaPlayer   mPlayer = null;
 
     private boolean isRecording = false;
     private boolean isPlaying = false;
-
+    private boolean isPaused = false;
+    private MediaPlayer   mPlayer = null;
+    private MediaRecorder mRecorder = null;
+    File target = null;
+    File[] files = null;
+    //Full path of file
+    private String currentFileFullpath = null;
+    //Only file name
+    private String currentFileName = null;
     MainActivity mainActivity = null;
+    private int currentFileIndex = 0;
+
 
     /**
      * TODO: Is this correct way to pass Activity to another class?
-     * @param ma
+     * @param ma: MainActivity
+     * Starting from
      */
     public Recorder(MainActivity ma) {
         this.mainActivity = ma;
+        // Load files in default folder
+        target = getExternalSDCardDirectory();
+
+        // Creating root_folder in case there is not.
+        if(!target.exists())
+            target.mkdir();
+
+        // After confirming folder is in place
+        this.initiateFolder();
+
+        //Initiate MediaRecorder
+        mRecorder = new MediaRecorder();
+        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        // SamplingRate needs to be moved into Settings
+        if (Build.VERSION.SDK_INT >= 10) {
+            mRecorder.setAudioSamplingRate(16000);
+            mRecorder.setAudioEncodingBitRate(96000);
+            mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+            mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+        } else {
+            // older version of Android, use crappy sounding voice codec
+            // Not that neccessary code here. Or something inside of Exception part.
+            mRecorder.setAudioSamplingRate(8000);
+            mRecorder.setAudioEncodingBitRate(12200);
+            mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+            mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        }
     }
 
     /**
@@ -57,8 +90,11 @@ public class Recorder extends Activity
     public String createFileName(){
         Calendar c = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("MMMM-dd-yyyy-HHmmss");
-        String strDate = sdf.format(c.getTime());
-        return strDate;
+        return sdf.format(c.getTime());
+    }
+
+    public int getCurrentFileIndex(){
+        return this.currentFileIndex;
     }
 
     public boolean isPlaying(){
@@ -77,86 +113,118 @@ public class Recorder extends Activity
         this.isRecording = i;
     }
 
-    private void onRecord(boolean start) {
-        if (start) {
-            startRecording();
-        } else {
-            stopRecording();
-        }
-    }
-
-    private void onPlay(boolean start) {
-        if (start) {
-            startPlaying();
-        } else {
-            stopPlaying();
-        }
-    }
-
     /**
      * Playing from the latest file to old
      */
     public void startPlaying() {
-        mPlayer = new MediaPlayer();
+        //Log.i(TAG,"playing?:"+mPlayer.isPlaying()+":"+currentFileFullpath);
+        this.isPlaying = true;
+
         try {
-            mPlayer.setDataSource(mFileName);
-            mPlayer.prepare();
-            mPlayer.start();
-            this.isPlaying = true;
+            if (!isPaused || mPlayer == null){ // Resume does not need to initiate Instance
+                mPlayer = new MediaPlayer();
+                mPlayer.setDataSource(currentFileFullpath);
+                mPlayer.prepare();
+                mPlayer.setVolume(1, 1);
+                mPlayer.start();
+            } else {
+                mPlayer.start();
+                this.isPaused = false;
+            }
         } catch (IOException e) {
             Log.i(TAG, "prepare() failed");
+            //e.printStackTrace();
             this.isPlaying = false;
         }
     }
 
-    public void stopPlaying() {
-        this.isPlaying = false;
-        if(mPlayer != null) {
-            mPlayer.release();
-            mPlayer = null;
+    public void resume(){
+        if(mPlayer != null && !mPlayer.isPlaying()){
+            mPlayer.start();
+            this.isPlaying = true;
+            this.isPaused = false;
         }
     }
 
-    public boolean startRecording() {
+    public void pause(){
+        if(mPlayer != null && this.isPlaying) {
+            mPlayer.pause();
+            this.isPlaying = false;
+            this.isPaused = true;
+        }
+    }
+
+    public void stopPlaying() {
+        if(mPlayer != null) {
+            mPlayer.release();
+            mPlayer = null;
+            this.isPlaying = false;
+            this.isPaused = false;
+        }
+    }
+
+    public boolean isPaused(){
+        return this.isPaused;
+    }
+
+    /**
+     * This does not play audio, just set the currentFileIndex to the next one.
+     */
+    public void nextSong(){
+        if(currentFileIndex == files.length-1) {
+            currentFileIndex = 0;
+        } else {
+            this.currentFileIndex = this.currentFileIndex + 1;
+        }
+        currentFileName = files[this.currentFileIndex].getName();
+        currentFileFullpath = target.getAbsolutePath() + "/"+currentFileName;
+        Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+currentFileFullpath);
+    }
+
+    public String getCurrentFileName(){
+        return this.currentFileName;
+    }
+
+    public void previousSong(){
+        if(currentFileIndex == 0) {
+            currentFileIndex = files.length - 1;
+        } else {
+            this.currentFileIndex = this.currentFileIndex - 1;
+        }
+        currentFileName = files[this.currentFileIndex].getName();
+        currentFileFullpath = target.getAbsolutePath() + "/"+currentFileName;
+        Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+currentFileFullpath);
+
+    }
+
+    /**
+     * Load default directory to read any new files
+     * And set the first file
+     */
+    public void initiateFolder(){
+        this.files = target.listFiles();
+        this.currentFileIndex = 0;
+        if(files.length > 0)
+            currentFileFullpath = target.getAbsolutePath() + "/"+files[0].getName();
+    }
+
+    public void startRecording() {
         try {
-            this.isRecording = true;
-            File target = getExternalSDCardDirectory();
-            // Creating folder in case there is not.
-            if(!target.exists())
-                target.mkdir();
             // In case setting has an option for storage, this part needs to be updated
-            mFileName = target.getAbsolutePath();
-            mFileName += "/" + this.createFileName() + ".3gp";
-            Log.i(TAG, mFileName);
-            mRecorder = new MediaRecorder();
-            mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            // SamplingRate needs to be moved into Settings
-            if (Build.VERSION.SDK_INT >= 10) {
-                mRecorder.setAudioSamplingRate(16000);
-                mRecorder.setAudioEncodingBitRate(96000);
-                mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-                mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-            } else {
-                // older version of Android, use crappy sounding voice codec
-                // Not that neccessary code here. Or something inside of Exception part.
-                mRecorder.setAudioSamplingRate(8000);
-                mRecorder.setAudioEncodingBitRate(12200);
-                mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-                mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-            }
-            mRecorder.setOutputFile(mFileName);
+            String newFileName = target.getAbsolutePath();
+            newFileName += "/" + this.createFileName() + ".3gp";
+            Log.i(TAG, newFileName);
+
+            mRecorder.setOutputFile(newFileName);
             mRecorder.prepare();
             mRecorder.start();
-            return true;
+            this.isRecording = true;
         } catch (IOException e) {
             Log.i(TAG, e.toString());
             e.printStackTrace();
             // Any exception sets it to False
             // Need to show why it fails.
             this.isRecording = false;
-        } finally {
-            // Any exception, it returns false;
-            return false;
         }
 
     }
@@ -186,6 +254,8 @@ public class Recorder extends Activity
      */
     public void stopRecording() {
         try {
+//            Log.i(TAG, Boolean.toString(this.isRecording) + ":" + Boolean.toString(this.isPlaying));
+
             mRecorder.stop();
             mRecorder.release();
             mRecorder = null;
@@ -194,6 +264,7 @@ public class Recorder extends Activity
             e.printStackTrace();
             this.isRecording = false;
         }
+
     }
 
     /**
@@ -208,87 +279,4 @@ public class Recorder extends Activity
         return false;
     }
 
-    /**
-     * only for testing...
-     */
-
-    class RecordButton extends Button {
-        boolean mStartRecording = true;
-
-        OnClickListener clicker = new OnClickListener() {
-            public void onClick(View v) {
-                onRecord(mStartRecording);
-                if (mStartRecording) {
-                    setText("Stop recording");
-                } else {
-                    setText("Start recording");
-                }
-                mStartRecording = !mStartRecording;
-            }
-        };
-
-        public RecordButton(Context ctx) {
-            super(ctx);
-            setText("Start recording");
-            setOnClickListener(clicker);
-        }
-    }
-
-    class PlayButton extends Button {
-        boolean mStartPlaying = true;
-
-        OnClickListener clicker = new OnClickListener() {
-            public void onClick(View v) {
-                onPlay(mStartPlaying);
-                if (mStartPlaying) {
-                    setText("Stop playing");
-                } else {
-                    setText("Start playing");
-                }
-                mStartPlaying = !mStartPlaying;
-            }
-        };
-
-        public PlayButton(Context ctx) {
-            super(ctx);
-            setText("Start playing");
-            setOnClickListener(clicker);
-        }
-    }
-
-
-
-    @Override
-    public void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
-
-        LinearLayout ll = new LinearLayout(this);
-        mRecordButton = new RecordButton(this);
-        ll.addView(mRecordButton,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        0));
-        mPlayButton = new PlayButton(this);
-        ll.addView(mPlayButton,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        0));
-        setContentView(ll);
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (mRecorder != null) {
-            mRecorder.release();
-            mRecorder = null;
-        }
-
-        if (mPlayer != null) {
-            mPlayer.release();
-            mPlayer = null;
-        }
-    }
 }
