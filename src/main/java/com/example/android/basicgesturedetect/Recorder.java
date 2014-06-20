@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 
 /**
@@ -38,10 +39,11 @@ public class Recorder extends Activity
     private MediaPlayer   mPlayer = null;
     private MediaRecorder mRecorder = null;
     File target = null;
-    File[] files = null;
+    ArrayList<File> files = null;
     // only below the ROOT and 1 level folders only
     ArrayList<File> directories = null;
     //Full path of file
+    //TODO This value needs to be returned by method rather than completed in every different places.
     private String currentFileFullpath = null;
     //Only file name
     private String currentFileName = "No File loaded";
@@ -70,8 +72,8 @@ public class Recorder extends Activity
         this.readDirectories();
 
         // Update current file status, fileName and fileIndex
-        if(files.length > 0)
-            this.currentFileName = files[currentFileIndex].getName();
+        if(files.size() > 0)
+            this.currentFileName = files.get(currentFileIndex).getName();
 
     }
 
@@ -164,12 +166,12 @@ public class Recorder extends Activity
      * This does not play audio, just set the currentFileIndex to the next one.
      */
     public void nextSong(){
-        if(currentFileIndex == files.length-1) {
+        if(currentFileIndex == files.size() - 1) {
             currentFileIndex = 0;
         } else {
             this.currentFileIndex = this.currentFileIndex + 1;
         }
-        currentFileName = files[this.currentFileIndex].getName();
+        currentFileName = files.get(this.currentFileIndex).getName();
         currentFileFullpath = target.getAbsolutePath() + "/"+currentFileName;
         Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+currentFileFullpath);
     }
@@ -181,11 +183,11 @@ public class Recorder extends Activity
 
     public void previousSong(){
         if(currentFileIndex == 0) {
-            currentFileIndex = files.length - 1;
+            currentFileIndex = files.size() - 1;
         } else {
             this.currentFileIndex = this.currentFileIndex - 1;
         }
-        currentFileName = files[this.currentFileIndex].getName();
+        currentFileName = files.get(this.currentFileIndex).getName();
         currentFileFullpath = target.getAbsolutePath() + "/"+currentFileName;
         Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+currentFileFullpath);
 
@@ -200,9 +202,9 @@ public class Recorder extends Activity
 
         //Add the ROOT folder as '0' index
         directories.add(target);
-        for(int i = 0 ; i < files.length ; i++){
-            if(files[i].isDirectory() && files[i].listFiles().length > 0) {
-                directories.add(files[i]);
+        for(int i = 0 ; i < files.size() ; i++){
+            if(files.get(i).isDirectory() && files.get(i).listFiles().length > 0) {
+                directories.add(files.get(i));
             }
         }
         Log.i(TAG,"Directory count:" + directories.size());
@@ -245,10 +247,10 @@ public class Recorder extends Activity
      * And set the first file
      */
     public void initiateFolder(){
-        this.files = target.listFiles();
+        this.files = new ArrayList(Arrays.asList(target.listFiles()));
         this.currentFileIndex = 0;
-        if(files.length > 0) {
-            currentFileFullpath = target.getAbsolutePath() + "/" + files[0].getName();
+        if(files.size() > 0) {
+            currentFileFullpath = target.getAbsolutePath() + "/" + files.get(0).getName();
         }
     }
 
@@ -322,7 +324,7 @@ public class Recorder extends Activity
             this.isRecording = false;
             initiateFolder();
             //Move to the last file which just recorded.
-            this.currentFileIndex = this.files.length-1;
+            this.currentFileIndex = this.files.size() - 1;
         } catch (Exception e){ //No idea what kind of Exception is coming...
             e.printStackTrace();
             this.isRecording = false;
