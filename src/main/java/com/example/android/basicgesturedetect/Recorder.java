@@ -21,6 +21,7 @@ import android.media.MediaPlayer;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 
 /**
@@ -38,12 +39,15 @@ public class Recorder extends Activity
     private MediaRecorder mRecorder = null;
     File target = null;
     File[] files = null;
+    // only below the ROOT and 1 level folders only
+    ArrayList<File> directories = null;
     //Full path of file
     private String currentFileFullpath = null;
     //Only file name
-    private String currentFileName = null;
+    private String currentFileName = "No File loaded";
     MainActivity mainActivity = null;
     private int currentFileIndex = 0;
+    private int currentDirectoryIndex = 0;
 
 
     /**
@@ -62,24 +66,13 @@ public class Recorder extends Activity
 
         // After confirming folder is in place
         this.initiateFolder();
+        // Initiate folder array
+        this.readDirectories();
 
-        //Initiate MediaRecorder
-        mRecorder = new MediaRecorder();
-        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        // SamplingRate needs to be moved into Settings
-        if (Build.VERSION.SDK_INT >= 10) {
-            mRecorder.setAudioSamplingRate(16000);
-            mRecorder.setAudioEncodingBitRate(96000);
-            mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-            mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-        } else {
-            // older version of Android, use crappy sounding voice codec
-            // Not that neccessary code here. Or something inside of Exception part.
-            mRecorder.setAudioSamplingRate(8000);
-            mRecorder.setAudioEncodingBitRate(12200);
-            mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-            mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-        }
+        // Update current file status, fileName and fileIndex
+        if(files.length > 0)
+            this.currentFileName = files[currentFileIndex].getName();
+
     }
 
     /**
@@ -182,6 +175,7 @@ public class Recorder extends Activity
     }
 
     public String getCurrentFileName(){
+
         return this.currentFileName;
     }
 
@@ -198,23 +192,89 @@ public class Recorder extends Activity
     }
 
     /**
+     * Build FolderList when only the app start. As there is no function of creating Folder, there is no need to checking everytime of launch.
+     * Add the ROOT folder but exclude '0' file folder.
+     */
+    public void readDirectories(){
+        directories = new ArrayList<File>();
+
+        //Add the ROOT folder as '0' index
+        directories.add(target);
+        for(int i = 0 ; i < files.length ; i++){
+            if(files[i].isDirectory() && files[i].listFiles().length > 0) {
+                directories.add(files[i]);
+            }
+        }
+        Log.i(TAG,"Directory count:" + directories.size());
+    }
+
+    /**
+     * Move to the next folder
+     * 1) list files 2) pick folders 3) get Array(folder[]) 4) set this.target = Array[selected] and initateFolder() 5) Same
+     */
+
+    public void nextFolder(){
+        //Reset index to the first file when the folder changed
+        this.currentFileIndex = 0;
+        if(currentDirectoryIndex == this.directories.size()-1)
+            currentDirectoryIndex = 0;
+        else
+            this.currentDirectoryIndex = currentDirectoryIndex + 1;
+        this.target = this.directories.get(this.currentDirectoryIndex);
+        Log.i(TAG,"currentDirectoryIndex:"+this.currentDirectoryIndex+":"+target.getName());
+
+    }
+
+    /**
+     * Move to the previous folder
+     */
+    public void previousFolder(){
+        //Reset index to the first file when the folder changed
+        this.currentFileIndex = 0;
+        if(currentDirectoryIndex == 0)
+            currentDirectoryIndex = this.directories.size()-1;
+        else
+            this.currentDirectoryIndex = currentDirectoryIndex - 1;
+        this.target = this.directories.get(this.currentDirectoryIndex);
+        Log.i(TAG,"currentDirectoryIndex:"+this.currentDirectoryIndex+":"+target.getName());
+
+    }
+
+    /**
      * Load default directory to read any new files
      * And set the first file
      */
     public void initiateFolder(){
         this.files = target.listFiles();
         this.currentFileIndex = 0;
-        if(files.length > 0)
-            currentFileFullpath = target.getAbsolutePath() + "/"+files[0].getName();
+        if(files.length > 0) {
+            currentFileFullpath = target.getAbsolutePath() + "/" + files[0].getName();
+        }
     }
 
     public void startRecording() {
         try {
+            //Initiate MediaRecorder
+            mRecorder = new MediaRecorder();
+            mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            // SamplingRate needs to be moved into Settings
+            if (Build.VERSION.SDK_INT >= 10) {
+                mRecorder.setAudioSamplingRate(16000);
+                mRecorder.setAudioEncodingBitRate(96000);
+                mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+                mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            } else {
+                // older version of Android, use crappy sounding voice codec
+                // Not that neccessary code here. Or something inside of Exception part.
+                mRecorder.setAudioSamplingRate(8000);
+                mRecorder.setAudioEncodingBitRate(12200);
+                mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+                mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+            }
             // In case setting has an option for storage, this part needs to be updated
             String newFileName = target.getAbsolutePath();
             newFileName += "/" + this.createFileName() + ".3gp";
-            Log.i(TAG, newFileName);
-
+            //Log.i(TAG, "NewFileName:"+newFileName);
             mRecorder.setOutputFile(newFileName);
             mRecorder.prepare();
             mRecorder.start();
@@ -230,7 +290,7 @@ public class Recorder extends Activity
     }
 
     /**
-     * Current code is not returning Removable SD card, instead, it returns the biggist Free space one.
+     * Current code is not returning Removable SD card, instead, it returns the biggest Free space one.
      * @return File
      */
     public File getExternalSDCardDirectory()
@@ -250,7 +310,7 @@ public class Recorder extends Activity
     }
 
     /**
-     * TODO Don't know whatelse needs to be added more
+     * TODO Don't know what else needs to be added more
      */
     public void stopRecording() {
         try {
@@ -260,6 +320,9 @@ public class Recorder extends Activity
             mRecorder.release();
             mRecorder = null;
             this.isRecording = false;
+            initiateFolder();
+            //Move to the last file which just recorded.
+            this.currentFileIndex = this.files.length-1;
         } catch (Exception e){ //No idea what kind of Exception is coming...
             e.printStackTrace();
             this.isRecording = false;
@@ -278,5 +341,13 @@ public class Recorder extends Activity
         }
         return false;
     }
+
+    /**
+     * Return current folder name to let user know where it is.
+     */
+    public String getCurrentDirectoryName(){
+        return this.target.getName();
+    }
+
 
 }

@@ -195,6 +195,9 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
                     break;
 
             }
+            /**
+             *
+             */
         } else{
             switch (getDirection(d)) {
                 case BOTTOM_TOP:
@@ -278,7 +281,6 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         // User performed a down event, and hasn't moved yet.
         // Set the threshold not to get gesture event.
         this.SWIPE_MIN_DISTANCE = 1000;
-        activity.cmd(Command.JOG_ANTI_CLOCK_WISE);
     }
 
     @Override
@@ -294,6 +296,7 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
     public boolean onDoubleTap(MotionEvent e) {
         // User tapped the screen twice.
         //Log.i(TAG, "Double tap: " + e.getPointerCount());
+        activity.cmd(Command.SPEAK_FILE_INFO);
         return false;
     }
 

@@ -132,7 +132,7 @@ public class MainActivity extends SampleActivityBase{
      */
     public void speak(String w) {
         //TODO Chang QUEUE_ADD to QUEUE_FLUSH
-        ttobj.speak(w, TextToSpeech.QUEUE_ADD, null);
+        ttobj.speak(w, TextToSpeech.QUEUE_FLUSH, null);
         //textView.append("Command: " + w + "\n");
     }
 
@@ -142,6 +142,10 @@ public class MainActivity extends SampleActivityBase{
         v.vibrate(70);
     }
 
+    /**
+     * TODO Needs to be graphical effect to make it prettier.
+     * @param w
+     */
     public void displayText(String w){
         textView.setText(w);
     }
@@ -153,6 +157,8 @@ public class MainActivity extends SampleActivityBase{
     public boolean cmd(int c){
         String cmdStr = "Invalid command";
         vibrate();
+        //Stop speaking when new action is coming
+        speak("");
 
         //Log.i(TAG,"cmd:"+c);
 
@@ -165,11 +171,16 @@ public class MainActivity extends SampleActivityBase{
             }else {
                 cmdStr = getResources().getString(R.string.ALREADY_RECORD);
             }
+            displayText(cmdStr);
         } else {
             switch (c) {
                 case Command.START_RECORD:
+                    if(!recorder.isPaused()){
+                        recorder.pause();
+                    }
                     recorder.startRecording();
                     cmdStr = getResources().getString(R.string.START_RECORD);
+                    this.displayText(cmdStr);
                     break;
                 case Command.ONETOUCH:
                     Log.i(TAG, "isPaused:"+recorder.isPaused()+":isPlaying:"+recorder.isPlaying());
@@ -183,27 +194,37 @@ public class MainActivity extends SampleActivityBase{
                         recorder.startPlaying();
                         cmdStr = getResources().getString(R.string.START_PLAYBACK);
                     }
-                    this.displayText(cmdStr + ":" + recorder.getCurrentFileName());
+                    this.displayText(cmdStr + ": " + recorder.getCurrentFileName());
                     break;
                 case Command.NEXT_SONG:
                     cmdStr = getResources().getString(R.string.NEXT_SONG);
                     recorder.stopPlaying();
                     recorder.nextSong();
                     recorder.startPlaying();
-                    this.displayText(cmdStr + ":" + recorder.getCurrentFileName());
+                    this.displayText(cmdStr + ": " + recorder.getCurrentFileName());
                     break;
                 case Command.PREVIOUS_SONG:
                     cmdStr = getResources().getString(R.string.PREVIOUS_SONG);
                     recorder.stopPlaying();
                     recorder.previousSong();
                     recorder.startPlaying();
-                    this.displayText(cmdStr + ":" + recorder.getCurrentFileName());
+                    this.displayText(cmdStr + ": " + recorder.getCurrentFileName());
                     break;
                 case Command.NEXT_FOLDER:
+                    recorder.stopPlaying();
+                    recorder.nextFolder();
+                    recorder.initiateFolder();
                     cmdStr = getResources().getString(R.string.NEXT_FOLDER);
+                    this.displayText(cmdStr + ": " + recorder.getCurrentDirectoryName());
+                    speak("Folder, " + recorder.getCurrentDirectoryName());
                     break;
                 case Command.PREVIOUS_FOLDER:
+                    recorder.stopPlaying();
+                    recorder.previousFolder();
+                    recorder.initiateFolder();
                     cmdStr = getResources().getString(R.string.PREVIOUS_FOLDER);
+                    this.displayText(cmdStr + ": " + recorder.getCurrentDirectoryName());
+                    speak("Folder, " + recorder.getCurrentDirectoryName());
                     break;
                 case Command.FAST_FORWARD_2X:
                     cmdStr = getResources().getString(R.string.FAST_FORWARD_2X);
@@ -213,6 +234,12 @@ public class MainActivity extends SampleActivityBase{
                     break;
                 case Command.SPEAK_FILE_INFO:
                     cmdStr = getResources().getString(R.string.SPEAK_FILE_INFO);
+                    String state = "";
+                    if(recorder.isPlaying())
+                        state = "Playing '";
+                    else
+                        state = "Paused '";
+                    this.speak(state + recorder.getCurrentFileName() + "'");
                     break;
                 case Command.NOTHING:
                     cmdStr = "SangJoon, SON!!!";
