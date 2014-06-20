@@ -42,11 +42,6 @@ public class Recorder
     ArrayList<File> files = null;
     // only below the ROOT and 1 level folders only
     ArrayList<File> directories = null;
-    //Full path of file
-    //TODO This value needs to be returned by method rather than completed in every different places.
-    private String currentFileFullpath = null;
-    //Only file name
-    private String currentFileName = "No File loaded";
     MainActivity mainActivity = null;
     private int currentFileIndex = 0;
     private int currentDirectoryIndex = 0;
@@ -70,10 +65,6 @@ public class Recorder
         this.initiateFolder();
         // Initiate folder array
         this.readDirectories();
-
-        // Update current file status, fileName and fileIndex
-        if(files.size() > 0)
-            this.currentFileName = files.get(currentFileIndex).getName();
 
     }
 
@@ -123,7 +114,7 @@ public class Recorder
         try {
             if (!isPaused || mPlayer == null){ // Resume does not need to initiate Instance
                 mPlayer = new MediaPlayer();
-                mPlayer.setDataSource(currentFileFullpath);
+                mPlayer.setDataSource(getCurrentFileFullPath());
                 mPlayer.prepare();
                 mPlayer.setVolume(1, 1);
                 mPlayer.start();
@@ -136,6 +127,10 @@ public class Recorder
             //e.printStackTrace();
             this.isPlaying = false;
         }
+    }
+
+    public String getCurrentFileFullPath(){
+        return target.getAbsolutePath() + "/"+this.getCurrentFileName();
     }
 
     public void resume(){
@@ -187,15 +182,11 @@ public class Recorder
         while(files.get(this.currentFileIndex).isDirectory())
             this.currentFileIndex = this.currentFileIndex + 1;
 
-
-        currentFileName = files.get(this.currentFileIndex).getName();
-        currentFileFullpath = target.getAbsolutePath() + "/"+currentFileName;
-        Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+currentFileFullpath);
+        Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+getCurrentFileFullPath());
     }
 
     public String getCurrentFileName(){
-
-        return this.currentFileName;
+        return files.get(this.currentFileIndex).getName();
     }
 
     public void previousSong(){
@@ -216,9 +207,7 @@ public class Recorder
             this.currentFileIndex = this.currentFileIndex - 1;
         }
 
-        currentFileName = files.get(this.currentFileIndex).getName();
-        currentFileFullpath = target.getAbsolutePath() + "/"+currentFileName;
-        Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+currentFileFullpath);
+        Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+getCurrentFileFullPath());
 
     }
 
@@ -279,9 +268,6 @@ public class Recorder
     public void initiateFolder(){
         this.files = new ArrayList(Arrays.asList(target.listFiles()));
         this.currentFileIndex = 0;
-        if(files.size() > 0) {
-            currentFileFullpath = target.getAbsolutePath() + "/" + files.get(0).getName();
-        }
     }
 
     public void startRecording() {
@@ -307,9 +293,14 @@ public class Recorder
             String newFileName = target.getAbsolutePath();
             newFileName += "/" + this.createFileName() + ".3gp";
             //Log.i(TAG, "NewFileName:"+newFileName);
+            Log.i(TAG, "currentFileIndex:" + currentFileIndex + ": size" + this.files.size());
             mRecorder.setOutputFile(newFileName);
             mRecorder.prepare();
             mRecorder.start();
+
+            //TODO Little risky as it may not be created by any exception.
+            this.files.add(new File(newFileName));
+
             this.isRecording = true;
         } catch (IOException e) {
             Log.i(TAG, e.toString());
@@ -352,9 +343,13 @@ public class Recorder
             mRecorder.release();
             mRecorder = null;
             this.isRecording = false;
-            initiateFolder();
-            //Move to the last file which just recorded.
-            this.currentFileIndex = this.files.size() - 1;
+
+            //TODO What if files are too many? Reload everything files makes no sense.
+            //initiateFolder();
+
+            //TODO Moving to the last as the new File added in "startRecoding into Array.
+            this.currentFileIndex = this.files.size()-1;
+            Log.i(TAG, "currentFileIndex:" + currentFileIndex + ": size" + this.files.size());
         } catch (Exception e){ //No idea what kind of Exception is coming...
             e.printStackTrace();
             this.isRecording = false;

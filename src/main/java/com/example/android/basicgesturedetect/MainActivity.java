@@ -168,6 +168,7 @@ public class MainActivity extends SampleActivityBase{
             if (c == Command.ONETOUCH || c == Command.STOP_RECORD) {
                 recorder.stopRecording();
                 cmdStr = getResources().getString(R.string.STOP_RECORD);
+                speak(getResources().getString(R.string.STOP_RECORD));
             }else {
                 cmdStr = getResources().getString(R.string.ALREADY_RECORD);
             }
@@ -175,9 +176,17 @@ public class MainActivity extends SampleActivityBase{
         } else {
             switch (c) {
                 case Command.START_RECORD:
-                    if(!recorder.isPaused()){
-                        recorder.pause();
+                    //TODO headache... this TTS gets recorded.
+                    speak("Three, two, one and " + getResources().getString(R.string.START_RECORD));
+                    try {
+                        Thread.sleep(2000);
+                    }catch (InterruptedException e){
+                        //Do nothing;
                     }
+
+                    //TODO any possibility of exception?
+                    recorder.stopPlaying();
+
                     recorder.startRecording();
                     cmdStr = getResources().getString(R.string.START_RECORD);
                     this.displayText(cmdStr);
