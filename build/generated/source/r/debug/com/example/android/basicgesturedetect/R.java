@@ -37,9 +37,28 @@ public final class R {
         public static final int main=0x7f070000;
     }
     public static final class string {
-        public static final int app_name=0x7f050000;
-        public static final int intro_message=0x7f050001;
-        public static final int sample_action=0x7f050002;
+        public static final int ALREADY_RECORD=0x7f050000;
+        public static final int FAST_BACKWARD_2X=0x7f050001;
+        public static final int FAST_BACKWARD_3X=0x7f050002;
+        public static final int FAST_FORWARD_2X=0x7f050003;
+        public static final int FAST_FORWARD_3X=0x7f050004;
+        public static final int JOG_ANTI_CLOCK_WISE=0x7f050005;
+        public static final int JOG_CLOCK_WISE=0x7f050006;
+        public static final int NEXT_FOLDER=0x7f050007;
+        public static final int NEXT_SONG=0x7f050008;
+        public static final int PAUSE=0x7f050009;
+        public static final int PREVIOUS_FOLDER=0x7f05000a;
+        public static final int PREVIOUS_SONG=0x7f05000b;
+        public static final int RESUME=0x7f05000c;
+        public static final int SPEAK_FILE_INFO=0x7f05000d;
+        public static final int START_PLAYBACK=0x7f05000e;
+        public static final int START_RECORD=0x7f05000f;
+        public static final int STOP=0x7f050010;
+        public static final int STOP_PLAYBACK=0x7f050011;
+        public static final int STOP_RECORD=0x7f050012;
+        public static final int app_name=0x7f050013;
+        public static final int intro_message=0x7f050014;
+        public static final int sample_action=0x7f050015;
     }
     public static final class style {
         public static final int AppTheme=0x7f060000;

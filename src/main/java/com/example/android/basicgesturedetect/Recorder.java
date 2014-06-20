@@ -26,9 +26,9 @@ import java.util.Arrays;
 import java.util.Calendar;
 
 /**
- * TODO Removing 'extends Activity' which is only for testing purpose
+ * TODO Removing folders from file list
  */
-public class Recorder extends Activity
+public class Recorder
 {
     private static final String TAG = "AudioRecordTest";
 
@@ -112,7 +112,12 @@ public class Recorder extends Activity
      * Playing from the latest file to old
      */
     public void startPlaying() {
-        //Log.i(TAG,"playing?:"+mPlayer.isPlaying()+":"+currentFileFullpath);
+        // If there is no files, just do nothing.
+        // What will be better way than this ... way?
+        if(files.size() == 0)
+            return;
+
+        //Log.i(TAG,"playing?:"+currentFileFullpath);
         this.isPlaying = true;
 
         try {
@@ -166,11 +171,23 @@ public class Recorder extends Activity
      * This does not play audio, just set the currentFileIndex to the next one.
      */
     public void nextSong(){
+        // If there is no files, just do nothing.
+        // TODO What will be better way than this ... way?
+        if(files.size() == 0)
+            return;
+
+
         if(currentFileIndex == files.size() - 1) {
             currentFileIndex = 0;
         } else {
             this.currentFileIndex = this.currentFileIndex + 1;
         }
+
+        //TODO need something better
+        while(files.get(this.currentFileIndex).isDirectory())
+            this.currentFileIndex = this.currentFileIndex + 1;
+
+
         currentFileName = files.get(this.currentFileIndex).getName();
         currentFileFullpath = target.getAbsolutePath() + "/"+currentFileName;
         Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+currentFileFullpath);
@@ -182,11 +199,23 @@ public class Recorder extends Activity
     }
 
     public void previousSong(){
+        // If there is no files, just do nothing.
+        // What will be better way than this ... way?
+        if(files.size() == 0)
+            return;
+
+
         if(currentFileIndex == 0) {
             currentFileIndex = files.size() - 1;
         } else {
             this.currentFileIndex = this.currentFileIndex - 1;
         }
+
+        //TODO need something better
+        while(files.get(this.currentFileIndex).isDirectory()) {
+            this.currentFileIndex = this.currentFileIndex - 1;
+        }
+
         currentFileName = files.get(this.currentFileIndex).getName();
         currentFileFullpath = target.getAbsolutePath() + "/"+currentFileName;
         Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+currentFileFullpath);
@@ -222,6 +251,7 @@ public class Recorder extends Activity
             currentDirectoryIndex = 0;
         else
             this.currentDirectoryIndex = currentDirectoryIndex + 1;
+
         this.target = this.directories.get(this.currentDirectoryIndex);
         Log.i(TAG,"currentDirectoryIndex:"+this.currentDirectoryIndex+":"+target.getName());
 

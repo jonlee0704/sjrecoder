@@ -13,10 +13,45 @@
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  See the License for the specific language governing permissions and
  limitations under the License.
+
+    public final static int START_RECORD = 1;
+    public final static int STOP_RECORD = 2;
+    public final static int START_PLAYBACK = 3;
+    public final static int STOP_PLAYBACK = 4;
+    public final static int FAST_FORWARD_2X = 5;
+    public final static int FAST_BACKWARD_2X = 6;
+    public final static int JOG_CLOCK_WISE = 7;
+    public final static int JOG_ANTI_CLOCK_WISE = 8;
+    public final static int NEXT_SONG = 9;
+    public final static int PREVIOUS_SONG = 10;
+    public final static int NEXT_FOLDER = 11;
+    public final static int PREVIOUS_FOLDER = 12;
+    public final static int SPEAK_FILE_INFO = 13;
+    public final static int STOP = 14;
+    public final static int FAST_FORWARD_3X = 15;
+    public final static int FAST_BACKWARD_3X = 16;
 -->
 
-
-
 <resources>
-        <string name="sample_action">Clear Text</string>
+    <string name="sample_action">Clear Text</string>
+    <string name="START_RECORD">"RECORDING..."</string>
+    <string name="STOP_RECORD">RECORD STOPPED</string>
+    <string name="START_PLAYBACK">PLAYING</string>
+    <string name="STOP_PLAYBACK">STOPPED</string>
+    <string name="FAST_FORWARD_2X">Fast forward 2x</string>
+    <string name="FAST_BACKWARD_2X">Rewind 2x</string>
+    <string name="JOG_CLOCK_WISE">Jog dial clock wise</string>
+    <string name="JOG_ANTI_CLOCK_WISE">Jog dial anti clock wise</string>
+    <string name="NEXT_SONG">MOVED NEXT</string>
+    <string name="PREVIOUS_SONG">MOVED PREVIOUS</string>
+    <string name="NEXT_FOLDER">Next folder</string>
+    <string name="PREVIOUS_FOLDER">Previous folder</string>
+    <string name="SPEAK_FILE_INFO">Details of audio file</string>
+    <string name="STOP">Stop</string>
+    <string name="FAST_FORWARD_3X">Fast forward 3x</string>
+    <string name="FAST_BACKWARD_3X">Rewind 3x</string>
+    <string name="ALREADY_RECORD">ON AIR</string>
+    <string name="PAUSE">PAUSED</string>
+    <string name="RESUME">RESUMING</string>
+
 </resources>
