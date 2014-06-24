@@ -27,13 +27,13 @@ import android.view.Menu;
 
 import com.example.android.common.activities.SampleActivityBase;
 import com.example.android.common.logger.Log;
-import com.example.android.common.logger.LogFragment;
 import com.example.android.common.logger.LogWrapper;
 import com.example.android.common.logger.MessageOnlyLogFilter;
 
 import java.util.Locale;
 
 import android.view.View;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.os.Vibrator;
 import android.content.Context;
@@ -64,18 +64,58 @@ public class MainActivity extends SampleActivityBase{
         //Remove notification bar
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-        setContentView(R.layout.activity_main);
-        textView = (TextView) findViewById(R.id.sample_output);
-        dialView = (View) findViewById(R.id.dial_view);
+//        setContentView(R.layout.activity_main);
+//        textView = (TextView) findViewById(R.id.sample_output);
+//        dialView = (View) findViewById(R.id.dial_view);
 
-        if (getSupportFragmentManager().findFragmentByTag(FRAGTAG) == null ) {
-            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-            BasicGestureDetectFragment fragment = new BasicGestureDetectFragment();
+        setContentView(new RelativeLayout(this) {
+            private int value = 0;
+            private TextView textView;
+            {
+                addView(new DialView(getContext()) {
+                    {
+                        // a step every 20°
+                        setStepAngle(10f);
+                        // area from 30% to 100%
+                        setDiscArea(.30f, 1.50f);
+                    }
+                    @Override
+                    protected void onRotate(int offset) {
+                        textView.setText(String.valueOf(value += offset));
+                    }
+                }, new RelativeLayout.LayoutParams(0, 0) {
+                    {
+                        width = MATCH_PARENT;
+                        height = MATCH_PARENT;
+                        addRule(RelativeLayout.CENTER_IN_PARENT);
+                    }
+                });
+                addView(textView = new TextView(getContext()) {
+                    {
+                        setText(Integer.toString(value));
+                        setTextColor(Color.WHITE);
+                        setTextSize(30);
+                    }
+                }, new RelativeLayout.LayoutParams(0, 0) {
+                    {
+                        width = WRAP_CONTENT;
+                        height = WRAP_CONTENT;
+                        addRule(RelativeLayout.CENTER_IN_PARENT);
+                    }
+                });
+            }
+        });
 
-            fragment.setActivity(this);
-            transaction.add(fragment, FRAGTAG);
-            transaction.commit();
-        }
+//        super.onCreate(savedInstanceState);
+//
+//        if (getSupportFragmentManager().findFragmentByTag(FRAGTAG) == null ) {
+//            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+//            BasicGestureDetectFragment fragment = new BasicGestureDetectFragment();
+//
+//            fragment.setActivity(this);
+//            transaction.add(fragment, FRAGTAG);
+//            transaction.commit();
+//        }
 
         ttobj=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
@@ -139,7 +179,7 @@ public class MainActivity extends SampleActivityBase{
     public void vibrate(){
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
-        v.vibrate(70);
+        v.vibrate(100);
     }
 
     /**
@@ -147,7 +187,8 @@ public class MainActivity extends SampleActivityBase{
      * @param w
      */
     public void displayText(String w){
-        textView.setText(w);
+        //textView.setText(w);
+        Log.i(TAG, "OUTPUT:"+w);
     }
 
     /**
@@ -176,67 +217,74 @@ public class MainActivity extends SampleActivityBase{
         } else {
             switch (c) {
                 case Command.START_RECORD:
-                    //TODO headache... this TTS gets recorded.
-                    speak("Three, two, one and " + getResources().getString(R.string.START_RECORD));
-                    try {
-                        Thread.sleep(2000);
-                    }catch (InterruptedException e){
-                        //Do nothing;
-                    }
-
                     //TODO any possibility of exception?
                     recorder.stopPlaying();
+
+                    //Waiting for until tts ends up.
+                    speak(getResources().getString(R.string.START_RECORD) + "Three, Two, One, and GO!");
+                    while(ttobj.isSpeaking()) {
+                        //Waiting until tts speaks out.
+                        try {
+                            Thread.sleep(100);
+                        }catch (Exception e){}
+                    }
 
                     recorder.startRecording();
                     cmdStr = getResources().getString(R.string.START_RECORD);
                     this.displayText(cmdStr);
                     break;
                 case Command.ONETOUCH:
-                    Log.i(TAG, "isPaused:"+recorder.isPaused()+":isPlaying:"+recorder.isPlaying());
+                    //Log.i(TAG, "isPaused:"+recorder.isPaused()+":isPlaying:"+recorder.isPlaying());
                     if (recorder.isPlaying() && !recorder.isPaused()) {
                         recorder.pause();
                         cmdStr = getResources().getString(R.string.PAUSE);
+                        speak(cmdStr);
                     } else if(!recorder.isPlaying() && recorder.isPaused()) {
                             recorder.resume();
                             cmdStr = getResources().getString(R.string.RESUME);
+                            speak(cmdStr);
                     } else if(!recorder.isPlaying() && !recorder.isPaused()) {
                         recorder.startPlaying();
                         cmdStr = getResources().getString(R.string.START_PLAYBACK);
+                        //speak(cmdStr);
                     }
-                    this.displayText(cmdStr + ": " + recorder.getCurrentFileName());
+                    this.displayText(cmdStr + " File: " + recorder.getCurrentFileName());
                     break;
                 case Command.NEXT_SONG:
                     cmdStr = getResources().getString(R.string.NEXT_SONG);
                     recorder.stopPlaying();
                     recorder.nextSong();
                     recorder.startPlaying();
-                    this.displayText(cmdStr + ": " + recorder.getCurrentFileName());
+                    this.displayText(cmdStr+ " File: " + recorder.getCurrentFileName());
                     break;
                 case Command.PREVIOUS_SONG:
                     cmdStr = getResources().getString(R.string.PREVIOUS_SONG);
                     recorder.stopPlaying();
                     recorder.previousSong();
                     recorder.startPlaying();
-                    this.displayText(cmdStr + ": " + recorder.getCurrentFileName());
+                    this.displayText(cmdStr+ " File: " + recorder.getCurrentFileName());
                     break;
                 case Command.NEXT_FOLDER:
                     recorder.stopPlaying();
                     recorder.nextFolder();
                     recorder.initiateFolder();
                     cmdStr = getResources().getString(R.string.NEXT_FOLDER);
-                    this.displayText(cmdStr + ": " + recorder.getCurrentDirectoryName());
-                    speak("Folder, " + recorder.getCurrentDirectoryName());
+                    this.displayText("Directory, " + recorder.getCurrentDirectoryName());
+                    speak("Directory, " + recorder.getCurrentDirectoryName());
                     break;
                 case Command.PREVIOUS_FOLDER:
                     recorder.stopPlaying();
                     recorder.previousFolder();
                     recorder.initiateFolder();
                     cmdStr = getResources().getString(R.string.PREVIOUS_FOLDER);
-                    this.displayText(cmdStr + ": " + recorder.getCurrentDirectoryName());
-                    speak("Folder, " + recorder.getCurrentDirectoryName());
+                    this.displayText("Directory, " + recorder.getCurrentDirectoryName());
+                    speak("Directory, " + recorder.getCurrentDirectoryName());
                     break;
                 case Command.FAST_FORWARD_2X:
+                    recorder.FF();
+
                     cmdStr = getResources().getString(R.string.FAST_FORWARD_2X);
+                    this.displayText(cmdStr);
                     break;
                 case Command.FAST_BACKWARD_2X:
                     cmdStr = getResources().getString(R.string.FAST_BACKWARD_2X);

@@ -49,6 +49,13 @@ public class BasicGestureDetectFragment extends Fragment{
         View gestureView = getActivity().findViewById(R.id.sample_output);
         gestureView.setClickable(true);
         gestureView.setFocusable(true);
+        View dialView = getActivity().findViewById(R.id.dial_view);
+        dialView.setClickable(true);
+        dialView.setFocusable(true);
+//        // a step every 20°
+//        dialView.setStepAngle(10f);
+//        // area from 30% to 100%
+//        dialView.setDiscArea(.20f, 1.00f);
 
         // BEGIN_INCLUDE(init_detector)
 

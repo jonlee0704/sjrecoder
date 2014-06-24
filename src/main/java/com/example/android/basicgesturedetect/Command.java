@@ -23,6 +23,7 @@ public class Command {
     public final static int NEXT_DAY = 17;
     public final static int PREVIOUS_DAY = 18;
     public final static int PAUSE = 19;
+    public final static int LONG_PRESS = 20;
     public final static int NOTHING = 100;
 
 

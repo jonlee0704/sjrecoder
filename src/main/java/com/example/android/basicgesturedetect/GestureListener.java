@@ -63,6 +63,15 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
     private final int RIGHT_LEFT = 7;
     private final int UP_LEFT = 8;
 
+    /**
+     * Vairables for Wheel jog controller
+     * start
+     */
+    private float startPoint;
+    private float movePoint;
+    private float startDir = -1;
+    private float moveDir;
+
     public GestureListener(MainActivity a){
         this.activity = a;
     }
@@ -127,6 +136,19 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         return distToCenter >= minDistToCenter && distToCenter <= maxDistToCenter;
     }
 
+    /**
+     * Compute a touch angle in degrees from center
+     * North = 0, East = 90, West = -90, South = +/-180
+     * @param touchX : X position of the finger in this view
+     * @param touchY : Y position of the finger in this view
+     * @return angle
+     */
+    private float touchAngle(float touchX, float touchY) {
+        float dX = touchX - centerX;
+        float dY = centerY - touchY;
+        return (float) (270 - Math.toDegrees(Math.atan2(dY, dX))) % 360 - 180;
+    }
+
 
 
     /**
@@ -147,7 +169,7 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         float d = this.getDegreeFromCartesian(e1.getX(),e1.getY(),e2.getX(),e2.getY());
         //float ta = touchAngle(e1.getX(),e1.getY(),e2.getX(),e2.getY());
         int dir = getDirection(d);
-        Log.i(TAG, "LOG:"+touchCnt+": degree:" + dir);
+//        Log.i(TAG, "LOG:"+touchCnt+": degree:" + dir);
 
         if (touchCnt > 2){
             cmd(Command.START_RECORD);
@@ -196,21 +218,59 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
 
             }
             /**
-             *
+             * Wheel controller mode. 어렵네... 우찌하노?
+             * DOWN UP -> FF
+             * UP DOWN -> RE
              */
-        } else{
-            switch (getDirection(d)) {
-                case BOTTOM_TOP:
-                case UP_RIGHT:
-                case LEFT_RIGHT:
-                case BOTTOM_RIGHT:
-                case TOP_BOTTOM:
-                case BOTTOM_LEFT:
-                case RIGHT_LEFT:
-                case UP_LEFT:
+        } else {
+            float startAngle = touchAngle(e1.getX(), e1.getY());
+            float touchAngle = touchAngle(e2.getX(), e2.getY());
+
+            float deltaAngle = (360 + d - startAngle + 180) % 360 - 180;
+//            Log.i(TAG, "TouchDegree:"+d+" : deltaAngle:" + deltaAngle+" : startAngle:" + startAngle+" : touchAngle:" + touchAngle);
+//            if(startDir == -1)
+//                startDir = getHexDirection(d);
+
+
+//            //Log.i(TAG, "startDir:" + startDir + ":endDir:" + getHexDirection(d));
+
+            float x1 = e1.getX();
+            float x2 = e2.getX();
+            float y1 = e1.getY();
+            float y2 = e2.getY();
+
+
+            // TODO... real bad code. In case 8 -> 1?
+            if ((x1 < x2 && y1 > y2) ||
+                    (x1 < x2 && y1 < y2) ||
+                    (x1 > x2 && y1 < y2) ||
+                    (x1 < x2 && y1 > y2))
+            {
+                Log.i(TAG, "Moving clockwise...");
+            } else if ((x1 > x2 && y1 < y2) ||
+                    (x1 > x2 && y1 > y2) ||
+                    (x1 < x2 && y1 > y2) ||
+                    (x1 > x2 && y1 < y2)){
+                Log.i(TAG, "Moving Anti-clockwise...");
+                Log.i(TAG, x1 + ":" + x2 + ":" + y1 + ":" + y2 + ":D:" + getDirection(d));
             }
-            //cmd(Command.NOTHING);
-            Log.i(TAG,"Too low speed to move enough distance:" + distanceX + ":" +distanceY);
+//            startDir = getHexDirection(d);
+
+//            switch (getDirection(d)) {
+//                case BOTTOM_TOP:
+//                case UP_RIGHT:
+//                case LEFT_RIGHT:
+//                    Log.i(TAG, "FF...");
+//                    break;
+//                case BOTTOM_RIGHT:
+//                case TOP_BOTTOM:
+//                case BOTTOM_LEFT:
+//                case RIGHT_LEFT:
+//                    Log.i(TAG, "Rewind...");
+//                    break;
+//                case UP_LEFT:
+//            }
+            //Log.i(TAG,"Too low speed to move enough distance:" + distanceX + ":" +distanceY);
         }
 
 
@@ -221,6 +281,11 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
     private void cmd(int c){
         this.isFired = true;
         activity.cmd(c);
+    }
+
+    private void cmd(int c, boolean isFired){
+        if (!isFired)
+            activity.cmd(c);
     }
 
     /**
@@ -275,12 +340,37 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
 //        }
     }
 
+    private int getHexDirection(float angle){
+        // n = 22.5 in case 8 direction
+        double n = 22.5;
+        if (angle > 360-n || angle < n){
+            return this.BOTTOM_TOP;
+        } else if (angle > n && angle < n*3){
+            return this.UP_RIGHT;
+        } else if (angle > n*3 && angle < n*5){
+            return this.LEFT_RIGHT;
+        } else if (angle > n*5 && angle < n*7){
+            return this.BOTTOM_RIGHT;
+        } else if (angle > n*7 && angle < n*9){
+            return this.TOP_BOTTOM;
+        } else if (angle > n*9 && angle < n*11){
+            return this.BOTTOM_LEFT;
+        } else if (angle > n*11 && angle < n*13){
+            return this.RIGHT_LEFT;
+        } else if (angle > n*13 && angle < n*15){
+            return this.UP_LEFT;
+        } else{
+            return this.NO_DIRECTION;
+        }
+    }
+
 
     @Override
     public void onShowPress(MotionEvent e) {
         // User performed a down event, and hasn't moved yet.
         // Set the threshold not to get gesture event.
         this.SWIPE_MIN_DISTANCE = 1000;
+        activity.cmd(Command.NOTHING);
     }
 
     @Override
@@ -289,6 +379,8 @@ public class GestureListener implements GestureDetector.OnGestureListener, Gestu
         this.SWIPE_MIN_DISTANCE = 50;
         Log.i(TAG,"Down: ");
         this.isFired = false;
+        //Down reset the start Jog event.
+        this.startDir = -1;
         return true;
     }
 

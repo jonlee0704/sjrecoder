@@ -26,19 +26,20 @@ import java.util.Arrays;
 import java.util.Calendar;
 
 /**
- * TODO Removing folders from file list
+ * TODO Adding "Cloud folder" of Playing back YouTube bookamark
+ * TODO Adding "Cloud folder" of
  */
-public class Recorder
-{
+public class Recorder {
     private static final String TAG = "AudioRecordTest";
 
 
     private boolean isRecording = false;
     private boolean isPlaying = false;
     private boolean isPaused = false;
-    private MediaPlayer   mPlayer = null;
+    private MediaPlayer mPlayer = null;
     private MediaRecorder mRecorder = null;
     File target = null;
+    File publicMusicFolder = null;
     ArrayList<File> files = null;
     // only below the ROOT and 1 level folders only
     ArrayList<File> directories = null;
@@ -49,8 +50,9 @@ public class Recorder
 
     /**
      * TODO: Is this correct way to pass Activity to another class?
+     *
      * @param ma: MainActivity
-     * Starting from
+     *            Starting from
      */
     public Recorder(MainActivity ma) {
         this.mainActivity = ma;
@@ -58,51 +60,74 @@ public class Recorder
         target = getExternalSDCardDirectory();
 
         // Creating root_folder in case there is not.
-        if(!target.exists())
+        if (!target.exists())
             target.mkdir();
 
         // After confirming folder is in place
         this.initiateFolder();
-        // Initiate folder array
+        // Initiate folder array, files
         this.readDirectories();
+
+        // InternalSDCard/Public/Music folder scanning
+        // TODO Need to support by default.
+        //directories.add( Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC));
 
     }
 
     /**
      * TODO: Need to make a decision if it's really need to configurable in Settings.
      * Default value is YYYY-MM-DD-HH-MM (or +LOCATION)
+     *
      * @return
      */
-    public String createFileName(){
+    public String createFileName() {
         Calendar c = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("MMMM-dd-yyyy-HHmmss");
         return sdf.format(c.getTime());
     }
 
-    public int getCurrentFileIndex(){
+    public int getCurrentFileIndex() {
         return this.currentFileIndex;
     }
 
-    public boolean isPlaying(){
+    public boolean isPlaying() {
         return this.isPlaying;
     }
 
-    public void isPlaying(boolean i){
+    public void isPlaying(boolean i) {
         this.isPlaying = i;
     }
 
-    public boolean isRecording(){
+    public boolean isRecording() {
         return this.isRecording;
     }
 
-    public void isRecording(boolean i){
+    public void isRecording(boolean i) {
         this.isRecording = i;
+    }
+
+    /**
+     * FF
+     * seekTo between 0~mPlayer.getDuration
+     * Once it's called, it's +10 on current index.
+     */
+    public void FF() {
+//        int duration = this.mPlayer.getDuration();
+//        mPlayer.seekTo(285700);
+//        mPlayer.getTrackInfo();
+//        //this.resume();
+//        Log.i(TAG, "duration:"+duration);
+    }
+
+    public void rewind() {
     }
 
     /**
      * Playing from the latest file to old
      */
     public void startPlaying() {
+        //Log.i(TAG+"startPlaying()",currentFileIndex + ":" + files.size());
+
         // If there is no files, just do nothing.
         // What will be better way than this ... way?
         if(files.size() == 0)
@@ -129,11 +154,17 @@ public class Recorder
         }
     }
 
+    /**
+     * TODO PUBLIC_MUSIC is included by default, then the path might
+     * @return
+     */
     public String getCurrentFileFullPath(){
         return target.getAbsolutePath() + "/"+this.getCurrentFileName();
     }
 
     public void resume(){
+        Log.i(TAG+"resume()",currentFileIndex + ":" + files.size());
+
         if(mPlayer != null && !mPlayer.isPlaying()){
             mPlayer.start();
             this.isPlaying = true;
@@ -142,6 +173,8 @@ public class Recorder
     }
 
     public void pause(){
+        Log.i(TAG+"pause()",currentFileIndex + ":" + files.size());
+
         if(mPlayer != null && this.isPlaying) {
             mPlayer.pause();
             this.isPlaying = false;
@@ -171,6 +204,7 @@ public class Recorder
         if(files.size() == 0)
             return;
 
+        Log.i(TAG,currentFileIndex + ":" + files.size());
 
         if(currentFileIndex == files.size() - 1) {
             currentFileIndex = 0;
@@ -178,11 +212,14 @@ public class Recorder
             this.currentFileIndex = this.currentFileIndex + 1;
         }
 
-        //TODO need something better
-        while(files.get(this.currentFileIndex).isDirectory())
-            this.currentFileIndex = this.currentFileIndex + 1;
+        Log.i(TAG+">>>nextSong",currentFileIndex + ":" + files.size());
 
-        Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+getCurrentFileFullPath());
+        //TODO need something better
+        while(files.get(this.currentFileIndex).isDirectory() ) {
+            this.currentFileIndex = this.currentFileIndex + 1;
+            if (currentFileIndex == files.size()-1)
+                return;
+        }
     }
 
     public String getCurrentFileName(){
@@ -206,9 +243,6 @@ public class Recorder
         while(files.get(this.currentFileIndex).isDirectory()) {
             this.currentFileIndex = this.currentFileIndex - 1;
         }
-
-        Log.i(TAG,"currentFileIndex:"+currentFileIndex+":"+getCurrentFileFullPath());
-
     }
 
     /**
@@ -242,7 +276,7 @@ public class Recorder
             this.currentDirectoryIndex = currentDirectoryIndex + 1;
 
         this.target = this.directories.get(this.currentDirectoryIndex);
-        Log.i(TAG,"currentDirectoryIndex:"+this.currentDirectoryIndex+":"+target.getName());
+        Log.i(TAG,"currentDirectoryIndex:"+this.currentDirectoryIndex+":"+target.getAbsolutePath());
 
     }
 
@@ -257,7 +291,7 @@ public class Recorder
         else
             this.currentDirectoryIndex = currentDirectoryIndex - 1;
         this.target = this.directories.get(this.currentDirectoryIndex);
-        Log.i(TAG,"currentDirectoryIndex:"+this.currentDirectoryIndex+":"+target.getName());
+        Log.i(TAG,"currentDirectoryIndex:"+this.currentDirectoryIndex+":"+target.getAbsolutePath());
 
     }
 
@@ -318,17 +352,25 @@ public class Recorder
      */
     public File getExternalSDCardDirectory()
     {
-        File dir[] = ContextCompat.getExternalFilesDirs((Context)this.mainActivity,Environment.DIRECTORY_MUSIC);
-        File targetFile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);;
+        File dir[] = ContextCompat.getExternalFilesDirs((Context) this.mainActivity, Environment.DIRECTORY_MUSIC);
+        File targetFile = null;
         //Pick the largest free space
         long freeSize = 0;
-        for(int i = 0; i < dir.length ; i++ ){
+
+        /**
+         * Interestingly dir[] has null even without removable sdcard. This may be an issue of samsung phone.
+         * TODO Test with another device and report Samsugn.
+         * Tested in HTC M8 and same result...
+         */
+
+        for(int i = 0; i < dir.length && dir[i] != null ; i++ ){
             if (dir[i].getFreeSpace() > freeSize) {
                 targetFile = dir[i];
                 freeSize = dir[i].getFreeSpace();
             }
         }
-        //Log.i(this.TAG, "targetFile:" + targetFile.getAbsolutePath().toString() + ":" + targetFile.getFreeSpace());
+
+        Log.i(this.TAG, "targetFile:" + targetFile.getAbsolutePath().toString() + ":" + targetFile.getFreeSpace());
         return   targetFile;
     }
 

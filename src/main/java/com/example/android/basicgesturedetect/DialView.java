@@ -31,60 +31,258 @@ public abstract class DialView extends View {
 
         super(context);
         stepAngle = 1;
+
+        /**
+         * TODO Considering to implement a specific evenListner for dialer and gesture
+         */
         setOnTouchListener(new OnTouchListener() {
+
             private float startAngle;
             private boolean isDragging;
             private int touchCnt;
 
+            public static final String TAG = "GestureListener";
+            public MainActivity activity = (MainActivity)getContext();
+
+            //TODO Need to optimize THRESHOLD numbers to tell single tap or drag and so on.
+            private int SWIPE_MIN_DISTANCE = 25;
+            private static final int LONGPRESS_THRESHOLD = 170; //millie seconds
+
+            private boolean isFired = false;
+            private boolean isLongpress = false;
+
+            /**
+             * n=8 directions control pad
+             * 360-(360/n)/2~(360/n)/2
+             * 1 = Bottom -> Top
+             * 2 = Upper right
+             * 3 = Left -> Right
+             * 4 = Bottom right
+             * 5 = Top -> Bottom
+             * 6 = Bottom left
+             * 7 = Right -> Left
+             * 8 = Upper left
+             */
+            private final int NO_DIRECTION = 0;
+            private final int BOTTOM_TOP = 1;
+            private final int UP_RIGHT = 2;
+            private final int LEFT_RIGHT = 3;
+            private final int BOTTOM_RIGHT = 4;
+            private final int TOP_BOTTOM = 5;
+            private final int BOTTOM_LEFT = 6;
+            private final int RIGHT_LEFT = 7;
+            private final int UP_LEFT = 8;
+
+            // For ACTION_UP
+            float startX = 0;
+            float startY = 0;
+            // To check long-press to turn on Dial Mode
+            long startAction = 0;
+
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                // For ACTION_MOVE
                 float touchX1 = event.getX();
                 float touchY1 = event.getY();
-                float touchX2 = 0;
-                float touchY2 = 0;
 
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
-                        touchX1 = event.getX();
-                        touchY1 = event.getY();
+                        // Checking direction in ACTION_UP
+                        startX = event.getX();
+                        startY = event.getY();
                         startAngle = touchAngle(touchX1, touchY1);
                         isDragging = isInDiscArea(touchX1, touchY1);
-                        Log.i(TAG,"ACTION_DOWN:" + event.getPointerCount());
 
-                        break;
+                        // Start time of TouchPress without moving
+                        this.startAction = System.currentTimeMillis();
+
+                        // ACTION_DOWN and ACTION_UP isFired.?
+                        isFired = false;
+
+                        // Initiate Longpress mode
+                        isLongpress = false;
+
+                        return true;
                     case MotionEvent.ACTION_MOVE:
-                        if (isDragging) {
+                        this.touchCnt = event.getPointerCount();
+//                        if(isFired)
+//                            return false;
+                        //Long Press!!! Not enough movement during threshold time.
+                        // Checking only when iLongpress is false.
+                        if (!isLongpress && (System.currentTimeMillis() - startAction) > LONGPRESS_THRESHOLD &&
+                                (Math.abs(startX-event.getX()) < SWIPE_MIN_DISTANCE && Math.abs(startY-event.getY()) < SWIPE_MIN_DISTANCE)) {
+                            //Log.i(TAG, "Touch duration: " + (System.currentTimeMillis() - startAction) +":"+Math.abs(startX-event.getX())+":"+Math.abs(startY-event.getY()));
+                            this.isLongpress = true;
+                            //To make vibration when Longpress is recognized.
+                            cmd(Command.LONG_PRESS);
+                        }
+
+                        if (isDragging && isLongpress ) {
                             float touchAngle = touchAngle(touchX1, touchY1);
                             float deltaAngle = (360 + touchAngle - startAngle + 180) % 360 - 180;
+                            //Log.i(TAG,"touchAngle:"+touchAngle+":startAngle:"+startAngle);
                             if (Math.abs(deltaAngle) > stepAngle) {
                                 int offset = (int) deltaAngle / (int) stepAngle;
                                 startAngle = touchAngle;
                                 onRotate(offset);
-                                Log.i(TAG, "ACTION_MOVE: Dragging True");
-                            } else {
-                                Log.i(TAG, "ACTION_MOVE: Dragging False");
-
+//                                Log.i(TAG, "ACTION_MOVE>>touchAngle:"+touchAngle+":startAngle:"+startAngle+":"+event.getPointerCount());
                             }
+                            isFired = true;
+                            return true;
+                        } else{
                             return false;
                         }
                     case MotionEvent.ACTION_SCROLL:
-                        /**
-                         *
-                         */
-                        Log.i(TAG,"ACTION_SCROLL:");
-                        break;
                     case MotionEvent.ACTION_UP:
-                        touchX2 = event.getX();
-                        touchY2 = event.getY();
-                        Log.i(TAG,"Degree:" + getDegreeFromCartesian(touchX1,touchY1,touchX2,touchY2));
-                        Log.i(TAG,"ACTION_UP:" + event.getPointerCount());
+                        // If event is already fired, it skips.
+                        if(isFired)
+                            return false;
 
+                        Log.i(TAG,"duration:" + (System.currentTimeMillis() - startAction));
+
+                        // If it's too short from DOWN to UP with not enough distance, it's SINGLE TAP.
+                        if ((System.currentTimeMillis() - startAction) < LONGPRESS_THRESHOLD  &&
+                                (Math.abs(startX-event.getX()) < SWIPE_MIN_DISTANCE && Math.abs(startY-event.getY()) < SWIPE_MIN_DISTANCE)) {
+                            activity.cmd(Command.ONETOUCH);
+                            return true;
+                        }
+
+                        if((Math.abs(startX-event.getX()) > SWIPE_MIN_DISTANCE && Math.abs(startY-event.getY()) > SWIPE_MIN_DISTANCE)){
+
+                            int dir = getDirection(getDegreeFromCartesian(startX,startY,event.getX(),event.getY()));
+                            switch (dir) {
+                                case BOTTOM_TOP:
+                                    if (touchCnt >= 2)
+                                        cmd(Command.START_RECORD);
+                                    else
+                                        cmd(Command.PREVIOUS_FOLDER);
+                                    break;
+                                case UP_RIGHT:
+                                    cmd(Command.NOTHING);
+                                    break;
+                                case LEFT_RIGHT:
+                                    if (touchCnt == 2)
+                                        cmd(Command.FAST_FORWARD_2X);
+                                    else if (touchCnt == 1)
+                                        cmd(Command.NEXT_SONG);
+                                    break;
+                                case BOTTOM_RIGHT:
+                                    cmd(Command.NOTHING);
+                                    break;
+                                case TOP_BOTTOM:
+                                    //From Top to Bottom
+                                    if (touchCnt == 2)
+                                        cmd(Command.STOP_RECORD);
+                                    else if ((touchCnt == 1))
+                                        cmd(Command.NEXT_FOLDER);
+                                    break;
+                                case BOTTOM_LEFT:
+                                    cmd(Command.NOTHING);
+                                    break;
+                                case RIGHT_LEFT:
+                                    if (touchCnt == 2)
+                                        cmd(Command.FAST_BACKWARD_2X);
+                                    else if (touchCnt == 1)
+                                        cmd(Command.PREVIOUS_SONG);
+                                    break;
+                                case UP_LEFT:
+                                    cmd(Command.NOTHING);
+                                    break;
+                            }
+                            Log.i(TAG,"Direction:" + dir);
+                            return true;
+                        }
                     case MotionEvent.ACTION_CANCEL:
                         isDragging = false;
+                        isFired = false;
+                        isLongpress = false;
                         break;
                 }
-                return true;
+                return false;
+            }
+
+            private void cmd(int c){
+                this.isFired = true;
+                activity.cmd(c);
+            }
+
+            private void cmd(int c, boolean isFired){
+                if (!isFired)
+                    activity.cmd(c);
+            }
+
+            /**
+             * n=8 directions control pad
+             * 360-(360/n)/2~(360/n)/2
+             * 1 = Down -> Up
+             * 2 = Upper right
+             * 3 = Left -> Right
+             * 4 = Down right
+             * 5 = Up -> Down
+             * 6 = Down left
+             * 7 = Right -> Left
+             * 8 = Upper left
+             * TODO: Consider better flexibility by different direction number.
+             * TODO: Now, it implements only 4 direction controls
+             */
+            private int getDirection(float angle){
+                // n = 45 in case 4 direction
+                double n = 45;
+                if (angle > 360-n || angle < n){
+                    return this.BOTTOM_TOP;
+                } else if (angle > n && angle < n*3){
+                    return this.LEFT_RIGHT;
+                } else if (angle > n*3 && angle < n*5){
+                    return this.TOP_BOTTOM;
+                } else if (angle > n*5 && angle < n*7){
+                    return this.RIGHT_LEFT;
+                } else{
+                    return this.NO_DIRECTION;
+                }
+
+            }
+
+            private int getHexDirection(float angle){
+                // n = 22.5 in case 8 direction
+                double n = 22.5;
+                if (angle > 360-n || angle < n){
+                    return this.BOTTOM_TOP;
+                } else if (angle > n && angle < n*3){
+                    return this.UP_RIGHT;
+                } else if (angle > n*3 && angle < n*5){
+                    return this.LEFT_RIGHT;
+                } else if (angle > n*5 && angle < n*7){
+                    return this.BOTTOM_RIGHT;
+                } else if (angle > n*7 && angle < n*9){
+                    return this.TOP_BOTTOM;
+                } else if (angle > n*9 && angle < n*11){
+                    return this.BOTTOM_LEFT;
+                } else if (angle > n*11 && angle < n*13){
+                    return this.RIGHT_LEFT;
+                } else if (angle > n*13 && angle < n*15){
+                    return this.UP_LEFT;
+                } else{
+                    return this.NO_DIRECTION;
+                }
+            }
+
+            /**
+             * Return degree
+             * @param nowX
+             * @param nowY
+             * @param centerX
+             * @param centerY
+             * @return
+             */
+            private float getDegreeFromCartesian(float nowX, float nowY, float centerX, float centerY)
+            {
+                //Log.i(TAG, "X1/Y1:"+nowX+"/"+centerX+" Y1/Y2:" + nowY + "/" + centerY);
+                float angle = (float) Math.atan2((centerX - nowX), (centerY-nowY));
+                float angleindegree = (float) (angle * 180/Math.PI);
+
+                return 180-angleindegree;
+
             }
         });
     }
@@ -173,8 +371,6 @@ public abstract class DialView extends View {
     private float touchAngle(float touchX, float touchY) {
         float dX = touchX - centerX;
         float dY = centerY - touchY;
-        Log.i(TAG, "in touchAngle: " + ((270 - Math.toDegrees(Math.atan2(dY, dX))) % 360 - 180));
-
         return (float) (270 - Math.toDegrees(Math.atan2(dY, dX))) % 360 - 180;
     }
 
