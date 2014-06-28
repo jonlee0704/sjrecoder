@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Shader;
+import android.os.Build;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -37,6 +38,8 @@ public abstract class DialView extends View {
         super(context);
         this.setBackgroundColor(Color.BLACK);
         stepAngle = 1;
+
+
 
         /**
          * TODO Considering to implement a specific even Listner for dialer and gesture

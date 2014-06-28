@@ -44,13 +44,14 @@ public class AudibleFileFilter implements FileFilter {
         boolean isSupport = false;
         String ext = getFileExtension(file.getName());
         if(file == null || ext == null || file.isDirectory())
-            isSupport = false;
+            return false;
 
 //        Log.i(TAG, "this.extensions.indexOf:"+this.extensions.indexOf("."+ext));
 
-        if (this.extensions.indexOf("."+ext) > 0 || this.extensions.toUpperCase().indexOf("."+ext) > 0)
-            isSupport = true;
+        if (this.extensions.toUpperCase().indexOf("."+ext.toUpperCase()) > 0)
+            return true;
 
+        // Default return false;
         return isSupport;
 
     }
