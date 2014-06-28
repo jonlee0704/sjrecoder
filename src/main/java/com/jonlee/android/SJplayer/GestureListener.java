@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.example.android.basicgesturedetect;
+package com.jonlee.android.SJplayer;
 
 import android.view.GestureDetector;
 import android.view.MotionEvent;
-import android.view.View;
 
-import com.example.android.common.logger.Log;
+import com.jonlee.android.common.logger.Log;
 
 public class GestureListener implements GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener {
 

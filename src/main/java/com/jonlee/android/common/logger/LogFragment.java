@@ -29,11 +29,11 @@
  * limitations under the License.
  */
 
-package com.example.android.common.logger;
+package com.jonlee.android.common.logger;
 
+import android.app.Fragment;
 import android.graphics.Typeface;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;

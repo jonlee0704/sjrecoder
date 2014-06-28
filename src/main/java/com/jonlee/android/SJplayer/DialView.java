@@ -1,8 +1,9 @@
-package com.example.android.basicgesturedetect;
+package com.jonlee.android.SJplayer;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
@@ -11,7 +12,7 @@ import android.graphics.Shader;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.example.android.common.logger.Log;
+import com.jonlee.android.common.logger.Log;
 
 /**
  * Created by jongyeong on 6/14/14.
@@ -25,15 +26,20 @@ public abstract class DialView extends View {
     private float stepAngle = 1;
 
     public static final String TAG = "DialView.OnTouchListener";
+    public static final int DIR_MODE_4 = 4;
+    public static final int DIR_MODE_8 = 8;
+
+    private int dir_mode = DIR_MODE_4;
 
 
     public DialView(Context context) {
 
         super(context);
+        this.setBackgroundColor(Color.BLACK);
         stepAngle = 1;
 
         /**
-         * TODO Considering to implement a specific evenListner for dialer and gesture
+         * TODO Considering to implement a specific even Listner for dialer and gesture
          */
         setOnTouchListener(new OnTouchListener() {
 
@@ -45,8 +51,9 @@ public abstract class DialView extends View {
             public MainActivity activity = (MainActivity)getContext();
 
             //TODO Need to optimize THRESHOLD numbers to tell single tap or drag and so on.
-            private int SWIPE_MIN_DISTANCE = 25;
-            private static final int LONGPRESS_THRESHOLD = 170; //millie seconds
+            private int SWIPE_MIN_DISTANCE = 18;
+            private static final int LONGPRESS_THRESHOLD = 200; //millie seconds
+            private static final int DOUBLETAB_THRESHOLD = 100; //millie seconds
 
             private boolean isFired = false;
             private boolean isLongpress = false;
@@ -78,6 +85,10 @@ public abstract class DialView extends View {
             float startY = 0;
             // To check long-press to turn on Dial Mode
             long startAction = 0;
+            // Checking DoubleTap event
+            int tabCount = 0;
+            // To Check DoubleTap event
+            long doubleTapActionStart = 0;
 
 
             @Override
@@ -88,7 +99,8 @@ public abstract class DialView extends View {
 
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN:
-                        // Checking direction in ACTION_UP
+                        // To check gesture direction in ACTION_UP
+                        // Set the position when the finger touches the screen
                         startX = event.getX();
                         startY = event.getY();
                         startAngle = touchAngle(touchX1, touchY1);
@@ -97,7 +109,8 @@ public abstract class DialView extends View {
                         // Start time of TouchPress without moving
                         this.startAction = System.currentTimeMillis();
 
-                        // ACTION_DOWN and ACTION_UP isFired.?
+
+                        // Initiate isFired which set up in ACTION_UP
                         isFired = false;
 
                         // Initiate Longpress mode
@@ -106,91 +119,156 @@ public abstract class DialView extends View {
                         return true;
                     case MotionEvent.ACTION_MOVE:
                         this.touchCnt = event.getPointerCount();
-//                        if(isFired)
-//                            return false;
                         //Long Press!!! Not enough movement during threshold time.
                         // Checking only when iLongpress is false.
+                        // TODO After observing SJ's error of longpress, THRESHOLD value needs to be optimized.
                         if (!isLongpress && (System.currentTimeMillis() - startAction) > LONGPRESS_THRESHOLD &&
-                                (Math.abs(startX-event.getX()) < SWIPE_MIN_DISTANCE && Math.abs(startY-event.getY()) < SWIPE_MIN_DISTANCE)) {
+                                (Math.abs(startX - event.getX()) < SWIPE_MIN_DISTANCE && Math.abs(startY - event.getY()) < SWIPE_MIN_DISTANCE)) {
                             //Log.i(TAG, "Touch duration: " + (System.currentTimeMillis() - startAction) +":"+Math.abs(startX-event.getX())+":"+Math.abs(startY-event.getY()));
-                            this.isLongpress = true;
                             //To make vibration when Longpress is recognized.
-                            cmd(Command.LONG_PRESS);
+                            cmd(Command.SPEAK_FILE_INFO);
+                            //cmd(Command.LONG_PRESS);
+                            // And speak the file info
+                            // activity.cmd(Command.SPEAK_FILE_INFO);
+                            if(isDragging)
+                                this.isLongpress = true;
                         }
 
-                        if (isDragging && isLongpress ) {
+                        if (isDragging && isLongpress) {
                             float touchAngle = touchAngle(touchX1, touchY1);
                             float deltaAngle = (360 + touchAngle - startAngle + 180) % 360 - 180;
                             //Log.i(TAG,"touchAngle:"+touchAngle+":startAngle:"+startAngle);
                             if (Math.abs(deltaAngle) > stepAngle) {
                                 int offset = (int) deltaAngle / (int) stepAngle;
                                 startAngle = touchAngle;
+                                // more offset for playing ff.
+                                // Checking only negative or positive.
+                                // TODO Want to add some different VIBRATION texture
+                                // So just use two if else cases here.
+                                // Log.i(TAG, "offset:"+offset);
+                                if (offset > 0)
+                                    activity.seek(1000);
+                                else
+                                    activity.seek(-1000);
+
+                                //Only for Vibrating
+                                activity.vibrate(30);
                                 onRotate(offset);
 //                                Log.i(TAG, "ACTION_MOVE>>touchAngle:"+touchAngle+":startAngle:"+startAngle+":"+event.getPointerCount());
                             }
                             isFired = true;
                             return true;
                         } else{
+                            isFired = false;
                             return false;
                         }
+                    // Nothing is coming up after ACTION_MOVE
+                    // TODO Need to clarify if there is any specific events captured here.
                     case MotionEvent.ACTION_SCROLL:
+                        Log.i(TAG, "ACTION_SCROLL");
+                        return false;
                     case MotionEvent.ACTION_UP:
-                        // If event is already fired, it skips.
+
+                        // If event is already fired, skips.
                         if(isFired)
                             return false;
 
-                        Log.i(TAG,"duration:" + (System.currentTimeMillis() - startAction));
+                        Log.i(TAG, "getDownTime:" + event.getDownTime()+" :getEventTime:"+event.getEventTime());
+
 
                         // If it's too short from DOWN to UP with not enough distance, it's SINGLE TAP.
                         if ((System.currentTimeMillis() - startAction) < LONGPRESS_THRESHOLD  &&
                                 (Math.abs(startX-event.getX()) < SWIPE_MIN_DISTANCE && Math.abs(startY-event.getY()) < SWIPE_MIN_DISTANCE)) {
+
+                            // TODO MultiTap implementation
+//                            // In case there is first SingleTap, then preparing the second Tab.
+                            this.tabCount = tabCount + 1;
+
+                            Log.i(TAG,"tabCount:" + tabCount + " touchCnt:" + touchCnt + ":" + (System.currentTimeMillis() - doubleTapActionStart) + ":" +
+                                    Math.abs(startY-event.getY()) +":" + Math.abs(startX-event.getX()) );
+
+                            //Log.i(TAG, event.getDownTime()+":"+event.getEventTime());
+
+                            if(tabCount >= 1 && System.currentTimeMillis() - doubleTapActionStart < LONGPRESS_THRESHOLD){
+                                this.tabCount = 0;
+                                Log.i(TAG, "DOUBLE TAB");
+                                cmd(Command.START_RECORD);
+                                return true;
+                            } else if(tabCount >= 2 && System.currentTimeMillis() - doubleTapActionStart < LONGPRESS_THRESHOLD) {
+
+                                Log.i(TAG, "TRIPLE TAB");
+                                return true;
+                            }
+
+                            if (System.currentTimeMillis() - doubleTapActionStart >= LONGPRESS_THRESHOLD) {
+                                tabCount = 0;
+                            } else {
+                                //To check multiTab action.
+                            }
+
+
                             activity.cmd(Command.ONETOUCH);
+
+                            // Reset here?
+                            this.doubleTapActionStart = System.currentTimeMillis();
                             return true;
                         }
 
-                        if((Math.abs(startX-event.getX()) > SWIPE_MIN_DISTANCE && Math.abs(startY-event.getY()) > SWIPE_MIN_DISTANCE)){
 
-                            int dir = getDirection(getDegreeFromCartesian(startX,startY,event.getX(),event.getY()));
+
+                        if((Math.abs(startX-event.getX()) > SWIPE_MIN_DISTANCE || Math.abs(startY-event.getY()) > SWIPE_MIN_DISTANCE)){
+
+                            int dir = 0;
+
+                            // 8 dir mode in Virtual directory(Media scann mode) to navigate ARTIST
+                            if (dir_mode == DIR_MODE_4)
+                                dir = getDirection(getDegreeFromCartesian(startX,startY,event.getX(),event.getY()));
+                            else if(dir_mode == DIR_MODE_8)
+                                dir = getHexDirection(getDegreeFromCartesian(startX,startY,event.getX(),event.getY()));
+
                             switch (dir) {
                                 case BOTTOM_TOP:
-                                    if (touchCnt >= 2)
+                                    if (touchCnt > 1)
                                         cmd(Command.START_RECORD);
-                                    else
+                                    else if (touchCnt == 1)
                                         cmd(Command.PREVIOUS_FOLDER);
                                     break;
+
+                                // Next ARTIST
                                 case UP_RIGHT:
-                                    cmd(Command.NOTHING);
+                                    cmd(Command.NEXT_ARTIST);
                                     break;
                                 case LEFT_RIGHT:
-                                    if (touchCnt == 2)
-                                        cmd(Command.FAST_FORWARD_2X);
-                                    else if (touchCnt == 1)
+//                                    if (touchCnt == 2)
+//                                        cmd(Command.FAST_FORWARD_2X);
+//                                    else if (touchCnt == 1)
+                                    if(touchCnt == 1)
                                         cmd(Command.NEXT_SONG);
                                     break;
-                                case BOTTOM_RIGHT:
-                                    cmd(Command.NOTHING);
-                                    break;
+//                                case BOTTOM_RIGHT:
+//                                    cmd(Command.NOTHING);
+//                                    break;
                                 case TOP_BOTTOM:
                                     //From Top to Bottom
-                                    if (touchCnt == 2)
-                                        cmd(Command.STOP_RECORD);
-                                    else if ((touchCnt == 1))
+                                    if (touchCnt > 1)
+                                        cmd(Command.START_RECORD);
+                                    else if (touchCnt == 1)
                                         cmd(Command.NEXT_FOLDER);
                                     break;
-                                case BOTTOM_LEFT:
-                                    cmd(Command.NOTHING);
-                                    break;
+//                                case BOTTOM_LEFT:
+//                                    cmd(Command.NOTHING);
+//                                    break;
                                 case RIGHT_LEFT:
-                                    if (touchCnt == 2)
-                                        cmd(Command.FAST_BACKWARD_2X);
-                                    else if (touchCnt == 1)
+                                    if(touchCnt == 1)
                                         cmd(Command.PREVIOUS_SONG);
                                     break;
+
+                                // PREVIOUS ARTIST
                                 case UP_LEFT:
-                                    cmd(Command.NOTHING);
+                                    cmd(Command.PREVIOUS_ARTIST);
                                     break;
                             }
-                            Log.i(TAG,"Direction:" + dir);
+                            //Log.i(TAG,"Direction:" + dir);
                             return true;
                         }
                     case MotionEvent.ACTION_CANCEL:
@@ -284,6 +362,8 @@ public abstract class DialView extends View {
                 return 180-angleindegree;
 
             }
+
+
         });
     }
 
@@ -302,17 +382,18 @@ public abstract class DialView extends View {
         paint.setDither(true);
         paint.setAntiAlias(true);
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(0xFFFFFFFF);
+        paint.setColor(Color.GRAY);
         paint.setXfermode(null);
         LinearGradient linearGradient = new LinearGradient(
-                radius, 0, radius, radius, 0xFFFFFFFF, 0xFFEAEAEA, Shader.TileMode.CLAMP);
+                radius, 0, radius, radius, Color.GRAY, Color.DKGRAY, Shader.TileMode.CLAMP);
         paint.setShader(linearGradient);
         canvas.drawCircle(centerX, centerY, maxCircle * radius, paint);
         paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
         canvas.drawCircle(centerX, centerY, minCircle * radius, paint);
         paint.setXfermode(null);
         paint.setShader(null);
-        paint.setColor(0x15000000);
+        //
+        paint.setColor(Color.GRAY);
         for (int i = 0, n =  360 / (int) stepAngle; i < n; i++) {
             double rad = Math.toRadians((int) stepAngle * i);
             int startX = (int) (centerX + minCircle * radius * Math.cos(rad));
@@ -392,5 +473,16 @@ public abstract class DialView extends View {
 
         return 180-angleindegree;
 
+    }
+
+    /**
+     * Changing the mode of directional pad mode(4dir <-> 8dir)
+     */
+    public void setDirMode(int mode){
+        dir_mode = mode;
+    }
+
+    public int getDirMode(){
+        return this.dir_mode;
     }
 }

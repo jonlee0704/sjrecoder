@@ -1,4 +1,4 @@
-package com.example.android.basicgesturedetect;
+package com.jonlee.android.SJplayer;
 
 /**
  * Created by jongyeong on 6/15/14.

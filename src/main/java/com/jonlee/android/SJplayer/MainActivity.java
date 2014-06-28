@@ -17,28 +17,28 @@
 
 
 
-package com.example.android.basicgesturedetect;
+package com.jonlee.android.SJplayer;
 
+import android.content.Context;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Vibrator;
+import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
-import android.support.v4.app.FragmentTransaction;
 import android.view.Menu;
-
-import com.example.android.common.activities.SampleActivityBase;
-import com.example.android.common.logger.Log;
-import com.example.android.common.logger.LogWrapper;
-import com.example.android.common.logger.MessageOnlyLogFilter;
-
-import java.util.Locale;
-
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.os.Vibrator;
-import android.content.Context;
-import android.view.WindowManager;
-import android.view.Window;
+
+import com.jonlee.android.common.activities.SampleActivityBase;
+import com.jonlee.android.common.logger.Log;
+import com.jonlee.android.common.logger.LogWrapper;
+import com.jonlee.android.common.logger.MessageOnlyLogFilter;
+
+import java.util.Locale;
 
 
 
@@ -53,7 +53,7 @@ public class MainActivity extends SampleActivityBase{
     public TextToSpeech ttobj = null;
     //public String ttsString = "Hello Sangjoon, welcome to SJ recorder";
     public TextView textView = null;
-    public View dialView = null;
+    //public DialView dialView = null;
     public Recorder recorder = null;
 
     @Override
@@ -66,22 +66,21 @@ public class MainActivity extends SampleActivityBase{
 
 //        setContentView(R.layout.activity_main);
 //        textView = (TextView) findViewById(R.id.sample_output);
-//        dialView = (View) findViewById(R.id.dial_view);
 
         setContentView(new RelativeLayout(this) {
             private int value = 0;
-            private TextView textView;
             {
                 addView(new DialView(getContext()) {
                     {
-                        // a step every 20°
+                        // a step every 5°
                         setStepAngle(10f);
                         // area from 30% to 100%
-                        setDiscArea(.30f, 1.50f);
+                        setDiscArea(.30f, 1.00f);
                     }
                     @Override
                     protected void onRotate(int offset) {
-                        textView.setText(String.valueOf(value += offset));
+                        //textView.setText(String.valueOf(recorder.getCurrentFileName()));
+//                        textView.setText(String.valueOf(value += offset));
                     }
                 }, new RelativeLayout.LayoutParams(0, 0) {
                     {
@@ -92,9 +91,10 @@ public class MainActivity extends SampleActivityBase{
                 });
                 addView(textView = new TextView(getContext()) {
                     {
-                        setText(Integer.toString(value));
-                        setTextColor(Color.WHITE);
-                        setTextSize(30);
+                        setText(getString(R.string.WELCOME));
+                        setTextColor(Color.LTGRAY);
+                        setTextAlignment(TEXT_ALIGNMENT_CENTER);
+                        setTextSize(20);
                     }
                 }, new RelativeLayout.LayoutParams(0, 0) {
                     {
@@ -121,7 +121,7 @@ public class MainActivity extends SampleActivityBase{
             @Override
             public void onInit(int status) {
                 if(status != TextToSpeech.ERROR){
-                    ttobj.setLanguage(Locale.US);
+                    ttobj.setLanguage(Locale.UK);
                 }
 
             }
@@ -130,6 +130,7 @@ public class MainActivity extends SampleActivityBase{
 
         // Create Recorder
         recorder = new Recorder(this);
+
     }
 
 
@@ -173,22 +174,45 @@ public class MainActivity extends SampleActivityBase{
     public void speak(String w) {
         //TODO Chang QUEUE_ADD to QUEUE_FLUSH
         ttobj.speak(w, TextToSpeech.QUEUE_FLUSH, null);
+        ttobj.setSpeechRate(2.5f);
         //textView.append("Command: " + w + "\n");
     }
 
     public void vibrate(){
-        Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
-        // Vibrate for 500 milliseconds
-        v.vibrate(100);
+        try {
+            Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
+            v.vibrate(100);
+        }catch(Exception e) {
+            // Do nothing
+        }
     }
+
+    public void vibrate(int s){
+        try{
+            Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
+            // Vibrate for 500 milliseconds
+            v.vibrate(s);
+        }catch(Exception e) {
+            // Do nothing
+        }
+    }
+
+
 
     /**
      * TODO Needs to be graphical effect to make it prettier.
      * @param w
      */
     public void displayText(String w){
-        //textView.setText(w);
-        Log.i(TAG, "OUTPUT:"+w);
+        textView.setText(w);
+        textView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+    }
+
+    /**
+     * Jogg Dial SEEK
+     */
+    public void seek(int i){
+        recorder.seek(i);
     }
 
     /**
@@ -211,7 +235,7 @@ public class MainActivity extends SampleActivityBase{
                 cmdStr = getResources().getString(R.string.STOP_RECORD);
                 speak(getResources().getString(R.string.STOP_RECORD));
             }else {
-                cmdStr = getResources().getString(R.string.ALREADY_RECORD);
+                cmdStr = getResources().getString(R.string.ON_AIR);
             }
             displayText(cmdStr);
         } else {
@@ -221,7 +245,7 @@ public class MainActivity extends SampleActivityBase{
                     recorder.stopPlaying();
 
                     //Waiting for until tts ends up.
-                    speak(getResources().getString(R.string.START_RECORD) + "Three, Two, One, and GO!");
+                    speak(getResources().getString(R.string.START_RECORD) + ", Start!");
                     while(ttobj.isSpeaking()) {
                         //Waiting until tts speaks out.
                         try {
@@ -248,62 +272,71 @@ public class MainActivity extends SampleActivityBase{
                         cmdStr = getResources().getString(R.string.START_PLAYBACK);
                         //speak(cmdStr);
                     }
-                    this.displayText(cmdStr + " File: " + recorder.getCurrentFileName());
+                    this.displayText("[File] " + recorder.getCurrentFileName());
                     break;
                 case Command.NEXT_SONG:
                     cmdStr = getResources().getString(R.string.NEXT_SONG);
                     recorder.stopPlaying();
-                    recorder.nextSong();
-                    recorder.startPlaying();
-                    this.displayText(cmdStr+ " File: " + recorder.getCurrentFileName());
+                    if(recorder.nextSong()) {
+                        recorder.startPlaying();
+                        this.displayText("[File] " + recorder.getCurrentFileName());
+                    } else{
+                        this.displayText("No file exists in this folder");
+                    }
                     break;
                 case Command.PREVIOUS_SONG:
                     cmdStr = getResources().getString(R.string.PREVIOUS_SONG);
                     recorder.stopPlaying();
-                    recorder.previousSong();
-                    recorder.startPlaying();
-                    this.displayText(cmdStr+ " File: " + recorder.getCurrentFileName());
+                    if(recorder.previousSong()) {
+                        recorder.startPlaying();
+                        this.displayText("[File] " + recorder.getCurrentFileName());
+                    } else{
+                        this.displayText("No file exists in this folder");
+                    }
                     break;
                 case Command.NEXT_FOLDER:
                     recorder.stopPlaying();
                     recorder.nextFolder();
-                    recorder.initiateFolder();
                     cmdStr = getResources().getString(R.string.NEXT_FOLDER);
-                    this.displayText("Directory, " + recorder.getCurrentDirectoryName());
-                    speak("Directory, " + recorder.getCurrentDirectoryName());
+                    this.displayText("[Folder] " + recorder.getCurrentDirectoryName());
+                    speak("Folder " + recorder.getCurrentDirectoryName());
                     break;
                 case Command.PREVIOUS_FOLDER:
                     recorder.stopPlaying();
                     recorder.previousFolder();
-                    recorder.initiateFolder();
                     cmdStr = getResources().getString(R.string.PREVIOUS_FOLDER);
-                    this.displayText("Directory, " + recorder.getCurrentDirectoryName());
-                    speak("Directory, " + recorder.getCurrentDirectoryName());
-                    break;
-                case Command.FAST_FORWARD_2X:
-                    recorder.FF();
+                    this.displayText("[Folder] " + recorder.getCurrentDirectoryName());
+                    speak("Folder " + recorder.getCurrentDirectoryName());
 
-                    cmdStr = getResources().getString(R.string.FAST_FORWARD_2X);
-                    this.displayText(cmdStr);
                     break;
-                case Command.FAST_BACKWARD_2X:
-                    cmdStr = getResources().getString(R.string.FAST_BACKWARD_2X);
-                    break;
+//                case Command.FAST_FORWARD_2X:
+//                    cmdStr = getResources().getString(R.string.FAST_FORWARD_2X);
+//                    this.displayText(cmdStr);
+//                    break;
+//                case Command.FAST_BACKWARD_2X:
+//                    cmdStr = getResources().getString(R.string.FAST_BACKWARD_2X);
+//                    break;
                 case Command.SPEAK_FILE_INFO:
-                    cmdStr = getResources().getString(R.string.SPEAK_FILE_INFO);
-                    String state = "";
-                    if(recorder.isPlaying())
-                        state = "Playing '";
-                    else
-                        state = "Paused '";
-                    this.speak(state + recorder.getCurrentFileName() + "'");
+//                    String state = "";
+//                    if(recorder.isPlaying())
+//                        state = "[Playing] '";
+//                    else
+//                        state = "[Paused] '";
+                    this.speak(recorder.getCurrentFileName() + "'");
                     break;
-                case Command.NOTHING:
-                    cmdStr = "SangJoon, SON!!!";
-                    break;
+//                case Command.NOTHING:
+//                    break;
             }
         }
         //speak(cmdStr);
         return true;
     }
+
+//    /**
+//     * TODO make this better as it calls a method in DialView which needs to be called from Recorder.
+//     */
+//    public void setDirMode(int mode){
+//        dialView.setDirMode(mode);
+//    }
+
 }

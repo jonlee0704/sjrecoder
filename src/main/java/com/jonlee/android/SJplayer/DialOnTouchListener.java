@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package com.example.android.basicgesturedetect;
+package com.jonlee.android.SJplayer;
 
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.example.android.common.logger.Log;
+import com.jonlee.android.common.logger.Log;
 
 public abstract class DialOnTouchListener implements
         View.OnTouchListener,
-        View.OnLongClickListener,
-        GestureDetector.OnGestureListener,
         GestureDetector.OnDoubleTapListener
 {
 
@@ -82,51 +80,47 @@ public abstract class DialOnTouchListener implements
         Log.i(TAG,"Constructor...");
     }
 
-    // BEGIN_INCLUDE(init_gestureListener)
-    @Override
-    public boolean onSingleTapUp(MotionEvent e) {
-        // Up motion completing a single tap occurred.
-        //Log.i(TAG, "Single Tap Up: ");
-        return true;
+    public DialOnTouchListener(){
+        Log.i(TAG,"Default Constructor...");
     }
+//    // BEGIN_INCLUDE(init_gestureListener)
+//    @Override
+//    public boolean onSingleTapUp(MotionEvent e) {
+//        // Up motion completing a single tap occurred.
+//        //Log.i(TAG, "Single Tap Up: ");
+//        return true;
+//    }
+//
+//
+//    @Override
+//    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+//        return false;
+//    }
+//
+//    @Override
+//    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+//        return false;
+//    }
+//
+//    @Override
+//    public void onShowPress(MotionEvent e) {
+//        // User performed a down event, and hasn't moved yet.
+//        // Set the threshold not to get gesture event.
+//        this.SWIPE_MIN_DISTANCE = 1000;
+//        activity.cmd(Command.NOTHING);
+//    }
+//
+//    @Override
+//    public boolean onDown(MotionEvent e) {
+//        // "Down" event - User touched the screen.
+//        this.SWIPE_MIN_DISTANCE = 50;
+//        Log.i(TAG,"Down: ");
+//        this.isFired = false;
+//        //Down reset the start Jog event.
+//        this.startDir = -1;
+//        return true;
+//    }
 
-
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        return false;
-    }
-
-    @Override
-    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-        return false;
-    }
-
-    @Override
-    public void onShowPress(MotionEvent e) {
-        // User performed a down event, and hasn't moved yet.
-        // Set the threshold not to get gesture event.
-        this.SWIPE_MIN_DISTANCE = 1000;
-        activity.cmd(Command.NOTHING);
-    }
-
-    @Override
-    public boolean onDown(MotionEvent e) {
-        // "Down" event - User touched the screen.
-        this.SWIPE_MIN_DISTANCE = 50;
-        Log.i(TAG,"Down: ");
-        this.isFired = false;
-        //Down reset the start Jog event.
-        this.startDir = -1;
-        return true;
-    }
-
-    @Override
-    public boolean onDoubleTap(MotionEvent e) {
-        // User tapped the screen twice.
-        //Log.i(TAG, "Double tap: " + e.getPointerCount());
-        activity.cmd(Command.SPEAK_FILE_INFO);
-        return false;
-    }
 
     @Override
     public boolean onDoubleTapEvent(MotionEvent e) {
@@ -135,6 +129,8 @@ public abstract class DialOnTouchListener implements
         // occurring.  This occurs for down, up, and move.
         //Log.i(TAG, "Event within double tap");
 //        cmd(T"Event within double tap");
+        activity.speak("Double Tab event");
+
         return false;
     }
 
@@ -143,7 +139,8 @@ public abstract class DialOnTouchListener implements
         // A confirmed single-tap event has occurred.  Only called when the detector has
         // determined that the first tap stands alone, and is not part of a double tap.
         //Log.i(TAG, "onSingleTapConfirmed");
-        activity.cmd(Command.ONETOUCH);
+        activity.speak("Single Tab");
+
         return true;
     }
 

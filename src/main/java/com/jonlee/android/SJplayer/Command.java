@@ -1,4 +1,4 @@
-package com.example.android.basicgesturedetect;
+package com.jonlee.android.SJplayer;
 
 /**
  * Created by jongyeong on 6/17/14.
@@ -24,6 +24,9 @@ public class Command {
     public final static int PREVIOUS_DAY = 18;
     public final static int PAUSE = 19;
     public final static int LONG_PRESS = 20;
+    public final static int NEXT_ARTIST = 21;
+    public final static int PREVIOUS_ARTIST = 22;
+
     public final static int NOTHING = 100;
 
 
